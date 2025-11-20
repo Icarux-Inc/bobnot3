@@ -6,9 +6,11 @@ import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { RoomProvider, ClientSideSuspense } from "@liveblocks/react/suspense";
+import type { Block } from "@blocknote/core";
 
 // Import BlockNote styles
 import "@blocknote/core/fonts/inter.css";
+import "@mantine/core/styles.css";
 import "@blocknote/mantine/style.css";
 
 // Memoized Editor Component to prevent re-renders
@@ -28,7 +30,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
   const editor = useCreateBlockNoteWithLiveblocks(editorOptions);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const saveToDatabase = useCallback(async (content: any) => {
+  const saveToDatabase = useCallback(async (content: Block[]) => {
     onStatusChange("saving");
     try {
       await fetch(`/api/pages/${pageId}`, {
@@ -53,7 +55,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
         clearTimeout(saveTimeoutRef.current);
       }
       saveTimeoutRef.current = setTimeout(() => {
-        saveToDatabase(editor.document);
+        void saveToDatabase(editor.document);
       }, 1000);
     };
 
@@ -119,7 +121,7 @@ function BlockNoteEditorInner({
       clearTimeout(saveTitleTimeoutRef.current);
     }
     saveTitleTimeoutRef.current = setTimeout(() => {
-      saveTitle(newTitle);
+      void saveTitle(newTitle);
     }, 1000);
   };
 
@@ -133,14 +135,15 @@ function BlockNoteEditorInner({
   }, []);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 relative">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto space-y-4 relative">
+      <div className="flex items-center justify-between pl-[54px] pr-6">
         <div className="flex-1">
-          <Input 
-            value={title} 
+          <Input
+            value={title}
             onChange={handleTitleChange}
-            className="text-4xl font-serif font-medium border-none px-0 shadow-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent"
+            className="font-serif font-medium border-none px-0 shadow-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent"
             placeholder="Untitled"
+            style={{ fontSize: '2rem' }}
           />
         </div>
         <div className="text-xs text-muted-foreground w-20 text-right">
