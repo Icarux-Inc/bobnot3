@@ -25,99 +25,99 @@ export default async function WorkspaceLayout({
     redirect("/api/auth/signin");
   }
 
-  const { workspaceId } = await params;
+  const { workspaceId: urlWorkspaceId } = await params;
 
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
+  const urlWorkspace = await db.workspace.findUnique({
+    where: { id: urlWorkspaceId },
   });
 
-  if (!workspace) {
+  if (!urlWorkspace) {
     redirect("/dashboard");
   }
 
-  const isOwner = workspace.ownerId === session.user.id;
-  let treeItems: any[] = [];
+  // Fetch user's own workspaces first
+  const userWorkspaces = await db.workspace.findMany({
+      where: { ownerId: session.user.id },
+      select: { id: true, name: true }
+  });
 
-  if (isOwner) {
-      const allFolders = await db.folder.findMany({
-        where: { workspaceId: workspaceId },
-        include: { 
-          pages: {
-            orderBy: { order: 'asc' }
-          } 
-        },
-        orderBy: { order: 'asc' }
-      });
-      
-      const rootPages = await db.page.findMany({
-        where: { workspaceId: workspaceId, folderId: null },
-        orderBy: { order: 'asc' }
-      });
+  const isUrlOwner = urlWorkspace.ownerId === session.user.id;
 
-      const folderMap = new Map<string, any>();
-      
-      allFolders.forEach(f => {
-        folderMap.set(f.id, { 
-          id: f.id, 
-          name: f.name, 
-          type: 'folder', 
-          children: [],
-          isOpen: false
-        });
-      });
-
-      allFolders.forEach(f => {
-        const folderNode = folderMap.get(f.id);
-        f.pages.forEach(p => {
-          folderNode.children.push({
-            id: p.id,
-            name: p.title,
-            type: 'page'
-          });
-        });
-      });
-
-      allFolders.forEach(f => {
-        const node = folderMap.get(f.id);
-        if (f.parentId && folderMap.has(f.parentId)) {
-          folderMap.get(f.parentId).children.push(node);
-        } else {
-          treeItems.push(node);
-        }
-      });
-
-      rootPages.forEach(p => {
-        treeItems.push({
-          id: p.id,
-          name: p.title,
-          type: 'page'
-        });
-      });
-  } else {
-      const sharedPages = await db.page.findMany({
-          where: {
-              workspaceId: workspaceId,
-              collaborators: { some: { id: session.user.id } }
-          },
-          orderBy: { order: 'asc' }
-      });
-
-      if (sharedPages.length === 0) {
-          redirect("/dashboard");
-      }
-
-      treeItems = sharedPages.map(p => ({
-          id: p.id,
-          name: p.title,
-          type: 'page'
-      }));
+  // Determine Context Workspace
+  // If I am the owner of the URL workspace, show it.
+  // If I am NOT the owner (viewing shared page), show MY primary workspace instead.
+  let contextWorkspaceId = urlWorkspaceId;
+  
+  if (!isUrlOwner && userWorkspaces.length > 0) {
+      contextWorkspaceId = userWorkspaces[0].id;
   }
 
-  // Fetch pages shared with me from OTHER workspaces
+  // Is user owner of the CONTEXT workspace?
+  const isContextOwner = userWorkspaces.some(w => w.id === contextWorkspaceId);
+
+  // Fetch data for CONTEXT workspace
+  const allFolders = await db.folder.findMany({
+    where: { workspaceId: contextWorkspaceId },
+    include: { 
+      pages: {
+        orderBy: { order: 'asc' }
+      } 
+    },
+    orderBy: { order: 'asc' }
+  });
+  
+  const rootPages = await db.page.findMany({
+    where: { workspaceId: contextWorkspaceId, folderId: null },
+    orderBy: { order: 'asc' }
+  });
+
+  const folderMap = new Map<string, any>();
+  const treeItems: any[] = [];
+  
+  allFolders.forEach(f => {
+    folderMap.set(f.id, { 
+      id: f.id, 
+      name: f.name, 
+      type: 'folder', 
+      children: [],
+      isOpen: false
+    });
+  });
+
+  allFolders.forEach(f => {
+    const folderNode = folderMap.get(f.id);
+    f.pages.forEach(p => {
+      folderNode.children.push({
+        id: p.id,
+        name: p.title,
+        type: 'page'
+      });
+    });
+  });
+
+  allFolders.forEach(f => {
+    const node = folderMap.get(f.id);
+    if (f.parentId && folderMap.has(f.parentId)) {
+      folderMap.get(f.parentId).children.push(node);
+    } else {
+      treeItems.push(node);
+    }
+  });
+
+  rootPages.forEach(p => {
+    treeItems.push({
+      id: p.id,
+      name: p.title,
+      type: 'page'
+    });
+  });
+
+  // Fetch pages shared with me (excluding those in context workspace)
+  // If context is MY workspace, shared pages from OTHER workspaces (like urlWorkspaceId) will appear here.
   const otherSharedPages = await db.page.findMany({
       where: {
           collaborators: { some: { id: session.user.id } },
-          workspaceId: { not: workspaceId }
+          workspaceId: { not: contextWorkspaceId }
       },
       include: {
           workspace: true
@@ -138,27 +138,32 @@ export default async function WorkspaceLayout({
     avatar: session.user.image ?? "",
   };
 
-  const workspaces = [
-    {
-      name: workspace.name,
+  const ownedWorkspaceParams = userWorkspaces.map(w => ({
+      name: w.name,
       plan: "Enterprise",
-    },
-  ];
+      id: w.id
+  }));
 
-  // Default breadcrumb items
-  const breadcrumbItems = [
-    { label: workspace.name, href: `/dashboard/${workspaceId}` },
-  ];
+  // Switcher only shows MY workspaces (since I'm in my context)
+  let allWorkspaces = [...ownedWorkspaceParams];
+  
+  // Sort to put context workspace first
+  allWorkspaces = allWorkspaces.sort((a, b) => {
+      if (a.id === contextWorkspaceId) return -1;
+      if (b.id === contextWorkspaceId) return 1;
+      return 0;
+  });
 
   return (
     <div className={`${inter.variable} font-sans`}>
       <SidebarProvider>
         <AppSidebar 
-          workspaceId={workspaceId} 
+          key={contextWorkspaceId}
+          workspaceId={contextWorkspaceId} 
           items={treeItems} 
           user={user}
-          workspaces={workspaces}
-          isOwner={isOwner}
+          workspaces={allWorkspaces}
+          isOwner={isContextOwner}
           sharedPages={formattedSharedPages}
         />
         <SidebarInset>

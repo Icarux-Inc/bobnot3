@@ -92,7 +92,7 @@ export function AppSidebar({
   workspaceId: string;
   items: TreeItem[];
   user: { name: string; email: string; avatar: string };
-  workspaces: { name: string; plan: string }[];
+  workspaces: { name: string; plan: string; id: string }[];
   isOwner?: boolean;
   sharedPages?: SharedPage[];
 }) {
