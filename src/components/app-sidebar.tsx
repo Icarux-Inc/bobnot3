@@ -38,6 +38,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -341,7 +342,7 @@ export function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center justify-between pr-2">
-            <span className="font-serif">Platform</span>
+            <span>Platform</span>
             {isOwner && (
             <div className="flex items-center gap-1">
               <button 
@@ -390,31 +391,43 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {sharedPages && sharedPages.length > 0 && (
-            <SidebarGroup>
-                <SidebarGroupLabel className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>Shared with me</span>
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        {sharedPages.map((page) => (
+        <SidebarSeparator className="mx-2 my-2" />
+        <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Shared with me</span>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    {sharedPages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-6 px-2 text-center border border-dashed border-sidebar-border/50 rounded-md m-1">
+                            <span className="text-xs text-muted-foreground">No pages shared with you</span>
+                        </div>
+                    ) : (
+                        sharedPages.map((page) => (
                             <SidebarMenuItem key={page.id}>
-                                <SidebarMenuButton asChild isActive={pathname === `/dashboard/${page.workspaceId}/${page.id}`}>
+                                <SidebarMenuButton 
+                                    asChild 
+                                    isActive={pathname === `/dashboard/${page.workspaceId}/${page.id}`}
+                                    className="h-auto py-2.5 items-start"
+                                    tooltip={`${page.title} • ${page.workspaceName}`}
+                                >
                                     <a href={`/dashboard/${page.workspaceId}/${page.id}`} className="flex items-center gap-2">
-                                        <FileText className="flex-shrink-0" />
-                                        <div className="flex flex-col overflow-hidden">
-                                            <span className="truncate">{page.title}</span>
-                                            <span className="text-[10px] text-muted-foreground truncate">in {page.workspaceName}</span>
+                                        <FileText className="h-4 w-4 shrink-0 mt-0.5" />
+                                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                                            <span className="truncate font-medium leading-none">{page.title}</span>
+                                            <span className="truncate text-[10px] text-muted-foreground">
+                                                {page.workspaceName}
+                                            </span>
                                         </div>
                                     </a>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-        )}
+                        ))
+                    )}
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
 
         <SidebarGroup className="mt-auto group-data-[collapsible=icon]:hidden">
           <SidebarGroupContent>
@@ -590,10 +603,19 @@ function EmptyDropZone({ folderId }: { folderId: string }) {
     } = useSortable({ id, disabled: false });
 
     return (
-        <SidebarMenuSubItem ref={setNodeRef} className={isOver ? "bg-sidebar-accent/50" : ""}>
-            <span className="text-xs text-muted-foreground px-2 italic block py-1">
-                Empty
-            </span>
+        <SidebarMenuSubItem ref={setNodeRef}>
+             <div 
+                className={cn(
+                    "h-8 border border-dashed rounded-md flex items-center justify-center transition-colors",
+                    isOver 
+                        ? "border-primary/50 bg-sidebar-accent" 
+                        : "border-sidebar-border/50 hover:border-sidebar-border text-muted-foreground/50"
+                )}
+            >
+                <span className="text-[10px] font-medium">
+                    {isOver ? "Drop here" : "Empty"}
+                </span>
+            </div>
         </SidebarMenuSubItem>
     );
 }
