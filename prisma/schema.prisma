@@ -54,6 +54,7 @@ model User {
     accounts      Account[]
     sessions      Session[]
     workspaces    Workspace[]
+    sharedPages   Page[] @relation("PageCollaborators")
 }
 
 model Workspace {
@@ -83,6 +84,8 @@ model Folder {
     children    Folder[] @relation("FolderToFolder")
     
     pages       Page[]
+    
+    order       Int      @default(0)
 }
 
 model Page {
@@ -97,6 +100,10 @@ model Page {
     
     folderId    String?
     folder      Folder?   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+    
+    order       Int      @default(0)
+    
+    collaborators User[] @relation("PageCollaborators")
 }
 
 model VerificationToken {

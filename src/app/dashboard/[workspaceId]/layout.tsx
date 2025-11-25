@@ -5,6 +5,13 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { GalleryVerticalEnd } from "lucide-react";
+import { Inter } from "next/font/google";
+import { DashboardBreadcrumb } from "@/components/dashboard-breadcrumb";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export default async function WorkspaceLayout({
   children,
@@ -18,43 +25,65 @@ export default async function WorkspaceLayout({
     redirect("/api/auth/signin");
   }
 
-  const { workspaceId } = await params;
+  const { workspaceId: urlWorkspaceId } = await params;
 
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
+  const urlWorkspace = await db.workspace.findUnique({
+    where: { id: urlWorkspaceId },
   });
 
-  if (!workspace || workspace.ownerId !== session.user.id) {
+  if (!urlWorkspace) {
     redirect("/dashboard");
   }
 
-  // Fetch all folders and pages to build the tree
+  // Fetch user's own workspaces first
+  const userWorkspaces = await db.workspace.findMany({
+      where: { ownerId: session.user.id },
+      select: { id: true, name: true }
+  });
+
+  const isUrlOwner = urlWorkspace.ownerId === session.user.id;
+
+  // Determine Context Workspace
+  // If I am the owner of the URL workspace, show it.
+  // If I am NOT the owner (viewing shared page), show MY primary workspace instead.
+  let contextWorkspaceId = urlWorkspaceId;
+  
+  if (!isUrlOwner && userWorkspaces.length > 0) {
+      contextWorkspaceId = userWorkspaces[0].id;
+  }
+
+  // Is user owner of the CONTEXT workspace?
+  const isContextOwner = userWorkspaces.some(w => w.id === contextWorkspaceId);
+
+  // Fetch data for CONTEXT workspace
   const allFolders = await db.folder.findMany({
-    where: { workspaceId: workspaceId },
-    include: { pages: true },
-    orderBy: { createdAt: 'asc' }
+    where: { workspaceId: contextWorkspaceId },
+    include: { 
+      pages: {
+        orderBy: { order: 'asc' }
+      } 
+    },
+    orderBy: { order: 'asc' }
   });
   
   const rootPages = await db.page.findMany({
-    where: { workspaceId: workspaceId, folderId: null },
-    orderBy: { createdAt: 'asc' }
+    where: { workspaceId: contextWorkspaceId, folderId: null },
+    orderBy: { order: 'asc' }
   });
 
-  // Build tree in memory
   const folderMap = new Map<string, any>();
+  const treeItems: any[] = [];
   
-  // Initialize map with folders
   allFolders.forEach(f => {
     folderMap.set(f.id, { 
       id: f.id, 
       name: f.name, 
       type: 'folder', 
       children: [],
-      isOpen: false // We can manage this state in the client, but good to have the structure
+      isOpen: false
     });
   });
 
-  // Add pages to their respective folders
   allFolders.forEach(f => {
     const folderNode = folderMap.get(f.id);
     f.pages.forEach(p => {
@@ -66,9 +95,6 @@ export default async function WorkspaceLayout({
     });
   });
 
-  const treeItems: any[] = [];
-
-  // Build folder hierarchy
   allFolders.forEach(f => {
     const node = folderMap.get(f.id);
     if (f.parentId && folderMap.has(f.parentId)) {
@@ -78,7 +104,6 @@ export default async function WorkspaceLayout({
     }
   });
 
-  // Add root pages
   rootPages.forEach(p => {
     treeItems.push({
       id: p.id,
@@ -87,11 +112,25 @@ export default async function WorkspaceLayout({
     });
   });
 
-  // Sort items: Folders first, then pages, or alphabetical? 
-  // Let's sort by name for now, or keep folders first.
-  // A simple sort function could be added here.
+  // Fetch pages shared with me (excluding those in context workspace)
+  // If context is MY workspace, shared pages from OTHER workspaces (like urlWorkspaceId) will appear here.
+  const otherSharedPages = await db.page.findMany({
+      where: {
+          collaborators: { some: { id: session.user.id } },
+          workspaceId: { not: contextWorkspaceId }
+      },
+      include: {
+          workspace: true
+      },
+      orderBy: { updatedAt: 'desc' }
+  });
 
-
+  const formattedSharedPages = otherSharedPages.map(p => ({
+      id: p.id,
+      title: p.title,
+      workspaceId: p.workspaceId,
+      workspaceName: p.workspace.name
+  }));
 
   const user = {
     name: session.user.name ?? "User",
@@ -99,33 +138,40 @@ export default async function WorkspaceLayout({
     avatar: session.user.image ?? "",
   };
 
-  const workspaces = [
-    {
-      name: workspace.name,
+  const ownedWorkspaceParams = userWorkspaces.map(w => ({
+      name: w.name,
       plan: "Enterprise",
-    },
-  ];
+      id: w.id
+  }));
+
+  // Switcher only shows MY workspaces (since I'm in my context)
+  let allWorkspaces = [...ownedWorkspaceParams];
+  
+  // Sort to put context workspace first
+  allWorkspaces = allWorkspaces.sort((a, b) => {
+      if (a.id === contextWorkspaceId) return -1;
+      if (b.id === contextWorkspaceId) return 1;
+      return 0;
+  });
 
   return (
-    <SidebarProvider>
-      <AppSidebar 
-        workspaceId={workspaceId} 
-        items={treeItems} 
-        user={user}
-        workspaces={workspaces}
-      />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="font-medium">
-             {workspace.name}
+    <div className={`${inter.variable} font-sans`}>
+      <SidebarProvider>
+        <AppSidebar 
+          key={contextWorkspaceId}
+          workspaceId={contextWorkspaceId} 
+          items={treeItems} 
+          user={user}
+          workspaces={allWorkspaces}
+          isOwner={isContextOwner}
+          sharedPages={formattedSharedPages}
+        />
+        <SidebarInset>
+          <div className="flex-1 overflow-hidden">
+            {children}
           </div>
-        </header>
-        <div className="flex-1 overflow-auto p-4">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }
