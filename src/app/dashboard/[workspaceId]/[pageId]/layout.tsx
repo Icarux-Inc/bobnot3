@@ -28,7 +28,7 @@ export default async function PageLayout({
 
   if (!page) redirect(`/dashboard/${workspaceId}`);
 
-  const breadcrumbItems = [
+  const breadcrumbItems: { label: string; href?: string }[] = [
     { label: workspace.name, href: `/dashboard/${workspaceId}` },
   ];
 
@@ -41,7 +41,6 @@ export default async function PageLayout({
 
   breadcrumbItems.push({
     label: page.title || "Untitled",
-    active: true,
   });
 
   return (

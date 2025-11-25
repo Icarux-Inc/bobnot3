@@ -12,7 +12,7 @@ export async function PATCH(
     }
 
     const { pageId } = await params;
-    const json = await req.json();
+    const json = await req.json() as { content?: string; title?: string };
 
     const page = await db.page.findUnique({
         where: { id: pageId },

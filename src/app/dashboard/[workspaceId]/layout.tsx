@@ -2,11 +2,8 @@ import { auth } from "@/server/auth";
 import { db } from "@/server/db";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { GalleryVerticalEnd } from "lucide-react";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Inter } from "next/font/google";
-import { DashboardBreadcrumb } from "@/components/dashboard-breadcrumb";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,7 +46,7 @@ export default async function WorkspaceLayout({
   let contextWorkspaceId = urlWorkspaceId;
   
   if (!isUrlOwner && userWorkspaces.length > 0) {
-      contextWorkspaceId = userWorkspaces[0].id;
+      contextWorkspaceId = userWorkspaces[0]!.id;
   }
 
   // Is user owner of the CONTEXT workspace?
@@ -71,8 +68,22 @@ export default async function WorkspaceLayout({
     orderBy: { order: 'asc' }
   });
 
-  const folderMap = new Map<string, any>();
-  const treeItems: any[] = [];
+  interface FolderNode {
+    id: string;
+    name: string;
+    type: 'folder';
+    children: Array<FolderNode | PageNode>;
+    isOpen: boolean;
+  }
+
+  interface PageNode {
+    id: string;
+    name: string;
+    type: 'page';
+  }
+
+  const folderMap = new Map<string, FolderNode>();
+  const treeItems: Array<FolderNode | PageNode> = [];
   
   allFolders.forEach(f => {
     folderMap.set(f.id, { 
@@ -86,6 +97,7 @@ export default async function WorkspaceLayout({
 
   allFolders.forEach(f => {
     const folderNode = folderMap.get(f.id);
+    if (!folderNode) return;
     f.pages.forEach(p => {
       folderNode.children.push({
         id: p.id,
@@ -97,8 +109,9 @@ export default async function WorkspaceLayout({
 
   allFolders.forEach(f => {
     const node = folderMap.get(f.id);
+    if (!node) return;
     if (f.parentId && folderMap.has(f.parentId)) {
-      folderMap.get(f.parentId).children.push(node);
+      folderMap.get(f.parentId)?.children.push(node);
     } else {
       treeItems.push(node);
     }

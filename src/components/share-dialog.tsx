@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/trpc/react";
-import { Loader2, Share2, Trash2, User } from "lucide-react";
+import { Loader2, Share2, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function ShareDialog({ pageId }: { pageId: string }) {
@@ -21,7 +21,7 @@ export function ShareDialog({ pageId }: { pageId: string }) {
     const addCollaborator = api.page.addCollaborator.useMutation({
         onSuccess: () => {
             setEmail("");
-            utils.page.getCollaborators.invalidate({ pageId });
+            void utils.page.getCollaborators.invalidate({ pageId });
         },
         onError: (error) => {
             alert(error.message);
@@ -30,7 +30,7 @@ export function ShareDialog({ pageId }: { pageId: string }) {
 
     const removeCollaborator = api.page.removeCollaborator.useMutation({
         onSuccess: () => {
-            utils.page.getCollaborators.invalidate({ pageId });
+            void utils.page.getCollaborators.invalidate({ pageId });
         },
         onError: (error) => {
             alert(error.message);
@@ -87,11 +87,11 @@ export function ShareDialog({ pageId }: { pageId: string }) {
                                     <div key={user.id} className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Avatar className="h-8 w-8">
-                                                <AvatarImage src={user.image || undefined} />
-                                                <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
+                                                <AvatarImage src={user.image ?? undefined} />
+                                                <AvatarFallback>{user.name?.[0] ?? "U"}</AvatarFallback>
                                             </Avatar>
                                             <div className="grid gap-0.5">
-                                                <span className="text-sm font-medium">{user.name || "User"}</span>
+                                                <span className="text-sm font-medium">{user.name ?? "User"}</span>
                                                 <span className="text-xs text-muted-foreground">{user.email}</span>
                                             </div>
                                         </div>

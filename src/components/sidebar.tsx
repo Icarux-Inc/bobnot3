@@ -1,17 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, FileText, Folder, Plus, Settings, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { api } from "@/trpc/react";
 
+interface SidebarFolder {
+  id: string;
+  name: string;
+  children?: SidebarFolder[];
+  pages?: SidebarPage[];
+}
+
+interface SidebarPage {
+  id: string;
+  title: string;
+}
+
 type SidebarProps = {
   workspaceId: string;
-  folders: any[]; // We'll type this properly later
-  pages: any[];
+  folders: SidebarFolder[];
+  pages: SidebarPage[];
 };
 
 export function Sidebar({ workspaceId, folders, pages }: SidebarProps) {
@@ -73,9 +85,9 @@ export function Sidebar({ workspaceId, folders, pages }: SidebarProps) {
   );
 }
 
-function FolderItem({ folder, workspaceId }: { folder: any, workspaceId: string }) {
+function FolderItem({ folder, workspaceId }: { folder: SidebarFolder, workspaceId: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const hasChildren = folder.children?.length > 0 || folder.pages?.length > 0;
+  const hasChildren = (folder.children?.length ?? 0) > 0 || (folder.pages?.length ?? 0) > 0;
 
   return (
     <div>
@@ -90,10 +102,10 @@ function FolderItem({ folder, workspaceId }: { folder: any, workspaceId: string 
       
       {isOpen && (
         <div className="pl-4 border-l border-sidebar-border/40 ml-4 space-y-1 mt-1">
-          {folder.children?.map((child: any) => (
+          {folder.children?.map((child: SidebarFolder) => (
             <FolderItem key={child.id} folder={child} workspaceId={workspaceId} />
           ))}
-          {folder.pages?.map((page: any) => (
+          {folder.pages?.map((page: SidebarPage) => (
             <PageItem key={page.id} page={page} workspaceId={workspaceId} />
           ))}
           {(!hasChildren) && (
@@ -105,7 +117,7 @@ function FolderItem({ folder, workspaceId }: { folder: any, workspaceId: string 
   );
 }
 
-function PageItem({ page, workspaceId }: { page: any, workspaceId: string }) {
+function PageItem({ page, workspaceId }: { page: SidebarPage, workspaceId: string }) {
   const pathname = usePathname();
   const isActive = pathname === `/dashboard/${workspaceId}/${page.id}`;
 
