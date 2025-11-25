@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     // Get the room from the request body
-    const { room } = await request.json();
+    const { room } = await request.json() as { room: string };
 
     if (!room) {
         return new Response("Missing room", { status: 400 });
@@ -42,15 +42,15 @@ export async function POST(request: Request) {
 
     // Check access
     let hasAccess = false;
-    
+
     // Assume room format "page-{id}"
-    if (room.startsWith("page-")) {
+    if (typeof room === 'string' && room.startsWith("page-")) {
         const pageId = room.replace("page-", "");
         const page = await db.page.findUnique({
             where: { id: pageId },
             include: { workspace: true, collaborators: true }
         });
-        
+
         if (page) {
             if (page.workspace.ownerId === session.user.id) {
                 hasAccess = true;
@@ -61,16 +61,16 @@ export async function POST(request: Request) {
     }
 
     if (!hasAccess) {
-         return new Response("Forbidden", { status: 403 });
+        return new Response("Forbidden", { status: 403 });
     }
 
     // Get the current user's info
     const user = {
         id: session.user.id,
         info: {
-            name: session.user.name || "Anonymous",
-            email: session.user.email || "",
-            avatar: session.user.image || "",
+            name: session.user.name ?? "Anonymous",
+            email: session.user.email ?? "",
+            avatar: session.user.image ?? "",
             color: getUserColor(session.user.id),
         },
     };
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     });
 
     // Give the user access to the room
-    liveSession.allow(room, liveSession.FULL_ACCESS);
+    liveSession.allow(String(room), liveSession.FULL_ACCESS);
 
     // Authorize the user and return the result
     const { status, body } = await liveSession.authorize();

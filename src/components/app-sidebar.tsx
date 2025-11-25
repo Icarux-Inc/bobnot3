@@ -12,12 +12,9 @@ import {
   defaultDropAnimationSideEffects,
   type DropAnimation,
   type DragStartEvent,
-  type DragOverEvent,
   type DragEndEvent,
-  type Modifier,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -163,21 +160,19 @@ export function AppSidebar({
       return [
         ...acc,
         { ...item, parentId, depth, index },
-        ...flatten(item.children || [], item.id, depth + 1),
+        ...flatten(item.children ?? [], item.id, depth + 1),
       ];
     }, []);
   };
 
-  const flattenedItems = useMemo(() => flatten(items), [items]);
+  const flattenedItems = useMemo(() => flatten(items), [items, flatten]);
   const activeItem = activeId ? flattenedItems.find((i) => i.id === activeId) : null;
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    // Optimistic updates could go here for smoother interactions
-  };
+
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -196,7 +191,7 @@ export function AppSidebar({
         }));
     };
     
-    let newItems = cloneItems(items);
+    const newItems = cloneItems(items);
     
     // Find source and destination in the original structure first
     let sourceParent: TreeItem[] | null = null;
@@ -204,37 +199,13 @@ export function AppSidebar({
     let sourceItem: TreeItem | undefined;
     
     let destParent: TreeItem[] | null = null;
-    let destParentId: string | null = null;
     let destIndex = -1;
-
-    // Helper to find item and its parent
-    const findItem = (list: TreeItem[], id: string, parentId: string | null): boolean => {
-        const idx = list.findIndex(i => i.id === id);
-        if (idx !== -1) {
-            if (id === activeId) {
-                sourceParent = list;
-                sourceIndex = idx;
-                sourceItem = list[idx];
-            }
-            if (id === overId) {
-                destParent = list;
-                destParentId = parentId;
-                destIndex = idx;
-            }
-            return !!(sourceItem && destParent);
-        }
-        for (const item of list) {
-            if (item.children) {
-                if (findItem(item.children, id, item.id)) return true;
-            }
-        }
-        return false;
-    };
 
     // We need to find both in the *same* traversal or separate?
     // Since we need to modify the list, we should work on `newItems`.
     // But to get correct indices, we need to find them *before* modification.
     // So let's find them in `newItems` (which is a clone of `items` at this point).
+    
     
     // Note: We need to find both. The recursive function above stops if both found? 
     // Actually, we can just traverse fully or until both found.
@@ -251,7 +222,6 @@ export function AppSidebar({
             }
             if (item.id === overId) {
                 destParent = list;
-                destParentId = pid;
                 destIndex = i;
             }
             if (item.children) {
@@ -281,7 +251,7 @@ export function AppSidebar({
              // Remove from source
             (sourceParent as TreeItem[]).splice(sourceIndex, 1);
             
-            if (!folder.children) folder.children = [];
+            folder.children = folder.children ?? [];
             folder.children.push(sourceItem);
         }
     } else {
@@ -486,7 +456,7 @@ const dropAnimationConfig: DropAnimation = {
 };
 
 // Helper component for action buttons
-function ActionButton({ icon: Icon, onClick, className }: { icon: any, onClick: (e: React.MouseEvent) => void, className?: string }) {
+function ActionButton({ icon: Icon, onClick, className }: { icon: React.ComponentType<{ className?: string }>, onClick: (e: React.MouseEvent) => void, className?: string }) {
     return (
         <button
             onClick={(e) => {
@@ -642,7 +612,7 @@ function TreeItemRenderer({
               </div>
             <CollapsibleContent>
                 <SidebarMenuSub>
-                    <SortableContext items={item.children?.map(c => c.id) || []} strategy={verticalListSortingStrategy}>
+                    <SortableContext items={item.children?.map(c => c.id) ?? []} strategy={verticalListSortingStrategy}>
                         {item.children?.map((child) => (
                             <TreeItemRenderer
                             key={child.id}
@@ -665,7 +635,7 @@ function TreeItemRenderer({
                 <DialogHeader>
                     <DialogTitle>Delete Folder?</DialogTitle>
                     <DialogDescription>
-                        Are you sure you want to delete "{item.name}" and all its contents? This action cannot be undone.
+                        Are you sure you want to delete &quot;{item.name}&quot; and all its contents? This action cannot be undone.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -702,7 +672,7 @@ function TreeItemRenderer({
                 <DialogHeader>
                     <DialogTitle>Delete Page?</DialogTitle>
                     <DialogDescription>
-                        Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                        Are you sure you want to delete &quot;{item.name}&quot;? This action cannot be undone.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -720,8 +690,6 @@ function TreeItemRenderer({
 function EmptyDropZone({ folderId }: { folderId: string }) {
     const id = `${folderId}-empty`;
     const {
-        attributes,
-        listeners,
         setNodeRef,
         isOver
     } = useSortable({ id, disabled: false });

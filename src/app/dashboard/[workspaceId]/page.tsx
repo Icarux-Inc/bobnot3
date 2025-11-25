@@ -13,7 +13,7 @@ export default async function WorkspacePage({
   });
 
   const breadcrumbItems = [
-    { label: workspace?.name || "Workspace", href: `/dashboard/${workspaceId}`, active: true },
+    { label: workspace?.name ?? "Workspace", href: `/dashboard/${workspaceId}`, active: true },
   ];
 
   return (
