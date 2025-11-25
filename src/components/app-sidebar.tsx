@@ -45,7 +45,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronRight, FileText, Folder, FolderOpen, Plus, Settings, Loader2, GalleryVerticalEnd, GripVertical, Users, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, FileText, Folder, FolderOpen, Plus, Loader2, GalleryVerticalEnd, Users, Pencil, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
 import { TeamSwitcher } from "./team-switcher";
@@ -370,7 +370,7 @@ export function AppSidebar({
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <SidebarMenu>
+                <SidebarMenu className="ml-2">
                     <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                         {items.map((item) => (
                             <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} isOwner={isOwner} />
@@ -398,7 +398,7 @@ export function AppSidebar({
                 <span>Shared with me</span>
             </SidebarGroupLabel>
             <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu className="ml-2">
                     {sharedPages.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-6 px-2 text-center border border-dashed border-sidebar-border/50 rounded-md m-1">
                             <span className="text-xs text-muted-foreground">No pages shared with you</span>
@@ -586,7 +586,7 @@ function TreeItemRenderer({
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton 
                     tooltip="Toggle Folder"
-                    className="h-8 w-8 p-2 shrink-0"
+                    className="h-8 w-6 p-1 shrink-0"
                   >
                     <div className="relative w-4 h-4">
                         <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 group-hover/folder-row:opacity-0 group-hover/folder-row:scale-75">
@@ -631,7 +631,7 @@ function TreeItemRenderer({
                         />
                     </div>
                 ) : (
-                    <SidebarMenuButton asChild tooltip={item.name} className="cursor-grab active:cursor-grabbing flex-1 pl-0 pr-2 group/row relative overflow-hidden">
+                    <SidebarMenuButton asChild tooltip={item.name} className="cursor-grab active:cursor-grabbing flex-1 pr-2 group/row relative overflow-hidden">
                         <a href={`/dashboard/${workspaceId}/folder/${item.id}`} className="flex items-center gap-2 w-full">
                             <span className="truncate transition-all duration-200 group-hover/row:pr-16">{item.name}</span>
                             
