@@ -16,10 +16,13 @@ export async function PATCH(
 
     const page = await db.page.findUnique({
         where: { id: pageId },
-        include: { workspace: true }
+        include: { workspace: true, collaborators: true }
     });
 
-    if (!page || page.workspace.ownerId !== session.user.id) {
+    const isOwner = page?.workspace.ownerId === session.user.id;
+    const isCollaborator = page?.collaborators.some(c => c.id === session.user.id);
+
+    if (!page || (!isOwner && !isCollaborator)) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
