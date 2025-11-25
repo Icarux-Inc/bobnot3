@@ -10,6 +10,7 @@ import { RoomProvider, ClientSideSuspense } from "@liveblocks/react/suspense";
 import type { Block } from "@blocknote/core";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ShareDialog } from "@/components/share-dialog";
 
 // Import BlockNote styles
 import "@blocknote/core/fonts/inter.css";
@@ -173,10 +174,13 @@ function BlockNoteEditorInner({
             style={{ fontSize: '2rem' }}
           />
         </div>
-        <div className="text-xs text-muted-foreground w-20 text-right">
-          {status === "saving" && <span className="flex items-center justify-end gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Saving</span>}
-          {status === "saved" && "Saved"}
-          {status === "unsaved" && "Unsaved"}
+        <div className="flex items-center gap-4">
+            <ShareDialog pageId={pageId} />
+            <div className="text-xs text-muted-foreground w-20 text-right">
+            {status === "saving" && <span className="flex items-center justify-end gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Saving</span>}
+            {status === "saved" && "Saved"}
+            {status === "unsaved" && "Unsaved"}
+            </div>
         </div>
       </div>
       <BlockNoteEditor pageId={pageId} onStatusChange={handleStatusChange} />

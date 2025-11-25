@@ -38,13 +38,14 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronRight, FileText, Folder, FolderOpen, Plus, Settings, Loader2, GalleryVerticalEnd, GripVertical } from "lucide-react";
+import { ChevronRight, FileText, Folder, FolderOpen, Plus, Loader2, GalleryVerticalEnd, Users, Pencil, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
 import { TeamSwitcher } from "./team-switcher";
@@ -74,16 +75,27 @@ type FlatItem = TreeItem & {
   index: number;
 };
 
+type SharedPage = {
+  id: string;
+  title: string;
+  workspaceId: string;
+  workspaceName: string;
+};
+
 export function AppSidebar({
   workspaceId,
   items: initialItems,
   user,
   workspaces,
+  isOwner = true,
+  sharedPages = [],
 }: {
   workspaceId: string;
   items: TreeItem[];
   user: { name: string; email: string; avatar: string };
-  workspaces: { name: string; plan: string }[];
+  workspaces: { name: string; plan: string; id: string }[];
+  isOwner?: boolean;
+  sharedPages?: SharedPage[];
 }) {
   const router = useRouter();
   const [items, setItems] = useState<TreeItem[]>(initialItems);
@@ -320,6 +332,8 @@ export function AppSidebar({
     logo: GalleryVerticalEnd,
   }));
 
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -328,7 +342,8 @@ export function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center justify-between pr-2">
-            <span className="font-serif">Platform</span>
+            <span>Platform</span>
+            {isOwner && (
             <div className="flex items-center gap-1">
               <button 
                 onClick={handleCreatePage} 
@@ -346,6 +361,7 @@ export function AppSidebar({
                  <Folder className="h-4 w-4" />
               </button>
             </div>
+            )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <DndContext
@@ -354,10 +370,10 @@ export function AppSidebar({
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <SidebarMenu>
+                <SidebarMenu className="ml-2">
                     <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                         {items.map((item) => (
-                            <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} />
+                            <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} isOwner={isOwner} />
                         ))}
                     </SortableContext>
                 </SidebarMenu>
@@ -375,9 +391,42 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-auto group-data-[collapsible=icon]:hidden">
-          <SidebarGroupContent>
-          </SidebarGroupContent>
+        <SidebarSeparator className="mx-2 my-2 mt-auto" />
+        <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Shared with me</span>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+                <SidebarMenu className="ml-2">
+                    {sharedPages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-6 px-2 text-center border border-dashed border-sidebar-border/50 rounded-md m-1">
+                            <span className="text-xs text-muted-foreground">No pages shared with you</span>
+                        </div>
+                    ) : (
+                        sharedPages.map((page) => (
+                            <SidebarMenuItem key={page.id}>
+                                <SidebarMenuButton 
+                                    asChild 
+                                    isActive={pathname === `/dashboard/${page.workspaceId}/${page.id}`}
+                                    className="h-auto py-2.5 items-start"
+                                    tooltip={`${page.title} • ${page.workspaceName}`}
+                                >
+                                    <a href={`/dashboard/${page.workspaceId}/${page.id}`} className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 shrink-0 mt-0.5" />
+                                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                                            <span className="truncate font-medium leading-none">{page.title}</span>
+                                            <span className="truncate text-[10px] text-muted-foreground">
+                                                {page.workspaceName}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))
+                    )}
+                </SidebarMenu>
+            </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
@@ -436,15 +485,77 @@ const dropAnimationConfig: DropAnimation = {
     }),
 };
 
+// Helper component for action buttons
+function ActionButton({ icon: Icon, onClick, className }: { icon: any, onClick: (e: React.MouseEvent) => void, className?: string }) {
+    return (
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onClick(e);
+            }}
+            className={cn("p-1 hover:bg-background/50 rounded-md transition-colors text-muted-foreground hover:text-foreground", className)}
+        >
+           <Icon className="h-3.5 w-3.5" />
+        </button>
+    )
+}
+
 function TreeItemRenderer({
   item,
   workspaceId,
+  isOwner,
 }: {
   item: TreeItem;
   workspaceId: string;
+  isOwner?: boolean;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const isActive = pathname === `/dashboard/${workspaceId}/${item.id}`;
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameName, setRenameName] = useState(item.name);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const renameFolder = api.workspace.renameFolder.useMutation({
+    onSuccess: () => {
+        router.refresh();
+        setIsRenaming(false);
+    }
+  });
+
+  const deleteFolder = api.workspace.deleteFolder.useMutation({
+    onSuccess: () => {
+        router.refresh();
+        setIsDeleteDialogOpen(false);
+    }
+  });
+
+  const deletePage = api.workspace.deletePage.useMutation({
+    onSuccess: () => {
+        router.refresh();
+        setIsDeleteDialogOpen(false);
+    }
+  });
+
+  const handleRename = () => {
+      if (!renameName.trim()) return;
+      if (renameName === item.name) {
+          setIsRenaming(false);
+          return;
+      }
+      renameFolder.mutate({ folderId: item.id, name: renameName });
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (item.type === "folder") {
+          deleteFolder.mutate({ folderId: item.id });
+      } else {
+          deletePage.mutate({ pageId: item.id });
+      }
+  };
 
   const {
     attributes,
@@ -466,14 +577,13 @@ function TreeItemRenderer({
       <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
         <Collapsible defaultOpen className="group/collapsible">
             <SidebarMenuItem>
-              <div className="flex items-center w-full group/folder-row">
+              <div className="flex items-center w-full group/folder-row relative">
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton 
                     tooltip="Toggle Folder"
-                    className="h-8 w-8 p-2 shrink-0"
+                    className="h-8 w-6 p-1 shrink-0"
                   >
                     <div className="relative w-4 h-4">
-                        {/* State: Not Hovered */}
                         <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 group-hover/folder-row:opacity-0 group-hover/folder-row:scale-75">
                             <Folder className={cn(
                                 "w-4 h-4 absolute transition-all duration-200",
@@ -487,7 +597,6 @@ function TreeItemRenderer({
                             )} />
                         </div>
 
-                        {/* State: Hovered */}
                         <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 opacity-0 scale-75 group-hover/folder-row:opacity-100 group-hover/folder-row:scale-100">
                             <ChevronRight className={cn(
                                 "w-4 h-4 transition-transform duration-200",
@@ -497,11 +606,39 @@ function TreeItemRenderer({
                     </div>
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
-                <SidebarMenuButton asChild tooltip={item.name} className="cursor-grab active:cursor-grabbing flex-1 pl-0">
-                    <a href={`/dashboard/${workspaceId}/folder/${item.id}`} className="flex items-center gap-2">
-                        <span className="truncate">{item.name}</span>
-                    </a>
-                </SidebarMenuButton>
+                {isRenaming ? (
+                    <div className="flex-1 px-2">
+                         <Input
+                            value={renameName}
+                            onChange={(e) => setRenameName(e.target.value)}
+                            onBlur={handleRename}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRename();
+                                if (e.key === "Escape") {
+                                    setRenameName(item.name);
+                                    setIsRenaming(false);
+                                }
+                                e.stopPropagation();
+                            }}
+                            autoFocus
+                            className="h-7 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                ) : (
+                    <SidebarMenuButton asChild tooltip={item.name} className="cursor-grab active:cursor-grabbing flex-1 pr-2 group/row relative overflow-hidden">
+                        <a href={`/dashboard/${workspaceId}/folder/${item.id}`} className="flex items-center gap-2 w-full">
+                            <span className="truncate transition-all duration-200 group-hover/row:pr-16">{item.name}</span>
+                            
+                            {isOwner && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 translate-x-2 transition-all duration-200 group-hover/row:opacity-100 group-hover/row:translate-x-0">
+                                    <ActionButton icon={Pencil} onClick={() => setIsRenaming(true)} />
+                                    <ActionButton icon={Trash2} onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive hover:text-destructive hover:bg-destructive/10" />
+                                </div>
+                            )}
+                        </a>
+                    </SidebarMenuButton>
+                )}
               </div>
             <CollapsibleContent>
                 <SidebarMenuSub>
@@ -511,6 +648,7 @@ function TreeItemRenderer({
                             key={child.id}
                             item={child}
                             workspaceId={workspaceId}
+                            isOwner={isOwner}
                             />
                         ))}
                     </SortableContext>
@@ -521,6 +659,23 @@ function TreeItemRenderer({
             </CollapsibleContent>
             </SidebarMenuItem>
         </Collapsible>
+        
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete Folder?</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to delete "{item.name}" and all its contents? This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={deleteFolder.isPending}>
+                        {deleteFolder.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : "Delete"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -528,13 +683,36 @@ function TreeItemRenderer({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
         <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive} tooltip={item.name} className="cursor-grab active:cursor-grabbing">
-                <a href={`/dashboard/${workspaceId}/${item.id}`} className={`flex items-center gap-2 ${isActive ? '' : 'text-muted-foreground/70 hover:text-foreground transition-colors'}`}>
-                <FileText className="flex-shrink-0" />
-                <span className="truncate">{item.name}</span>
+            <SidebarMenuButton asChild isActive={isActive} tooltip={item.name} className="cursor-grab active:cursor-grabbing group/row relative overflow-hidden">
+                <a href={`/dashboard/${workspaceId}/${item.id}`} className={`flex items-center gap-2 w-full ${isActive ? '' : 'text-muted-foreground/70 hover:text-foreground transition-colors'}`}>
+                    <FileText className="flex-shrink-0" />
+                    <span className="truncate transition-all duration-200 group-hover/row:pr-8">{item.name}</span>
+                    
+                    {isOwner && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 translate-x-2 transition-all duration-200 group-hover/row:opacity-100 group-hover/row:translate-x-0">
+                            <ActionButton icon={Trash2} onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive hover:text-destructive hover:bg-destructive/10" />
+                        </div>
+                    )}
                 </a>
             </SidebarMenuButton>
         </SidebarMenuItem>
+        
+         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete Page?</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={deletePage.isPending}>
+                        {deletePage.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : "Delete"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
@@ -549,10 +727,19 @@ function EmptyDropZone({ folderId }: { folderId: string }) {
     } = useSortable({ id, disabled: false });
 
     return (
-        <SidebarMenuSubItem ref={setNodeRef} className={isOver ? "bg-sidebar-accent/50" : ""}>
-            <span className="text-xs text-muted-foreground px-2 italic block py-1">
-                Empty
-            </span>
+        <SidebarMenuSubItem ref={setNodeRef}>
+             <div 
+                className={cn(
+                    "h-8 border border-dashed rounded-md flex items-center justify-center transition-colors",
+                    isOver 
+                        ? "border-primary/50 bg-sidebar-accent" 
+                        : "border-sidebar-border/50 hover:border-sidebar-border text-muted-foreground/50"
+                )}
+            >
+                <span className="text-[10px] font-medium">
+                    {isOver ? "Drop here" : "Empty"}
+                </span>
+            </div>
         </SidebarMenuSubItem>
     );
 }

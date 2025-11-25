@@ -1,5 +1,6 @@
 
 import { workspaceRouter } from "@/server/api/routers/workspace";
+import { pageRouter } from "@/server/api/routers/page";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -9,6 +10,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   workspace: workspaceRouter,
+  page: pageRouter,
 });
 
 // export type definition of API
