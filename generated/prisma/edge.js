@@ -206,7 +206,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/eant/dev/bobnot3/generated/prisma",
+      "value": "/mnt/c/developer/bobnot3/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -220,7 +220,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/eant/dev/bobnot3/prisma/schema.prisma",
+    "sourceFilePath": "/mnt/c/developer/bobnot3/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -234,6 +234,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
