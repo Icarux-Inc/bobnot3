@@ -31,78 +31,106 @@ export default async function WorkspaceLayout({
     where: { id: workspaceId },
   });
 
-  if (!workspace || workspace.ownerId !== session.user.id) {
+  if (!workspace) {
     redirect("/dashboard");
   }
 
-  // Fetch all folders and pages to build the tree
-  const allFolders = await db.folder.findMany({
-    where: { workspaceId: workspaceId },
-    include: { 
-      pages: {
+  const isOwner = workspace.ownerId === session.user.id;
+  let treeItems: any[] = [];
+
+  if (isOwner) {
+      const allFolders = await db.folder.findMany({
+        where: { workspaceId: workspaceId },
+        include: { 
+          pages: {
+            orderBy: { order: 'asc' }
+          } 
+        },
         orderBy: { order: 'asc' }
-      } 
-    },
-    orderBy: { order: 'asc' }
-  });
-  
-  const rootPages = await db.page.findMany({
-    where: { workspaceId: workspaceId, folderId: null },
-    orderBy: { order: 'asc' }
-  });
-
-  // Build tree in memory
-  const folderMap = new Map<string, any>();
-  
-  // Initialize map with folders
-  allFolders.forEach(f => {
-    folderMap.set(f.id, { 
-      id: f.id, 
-      name: f.name, 
-      type: 'folder', 
-      children: [],
-      isOpen: false // We can manage this state in the client, but good to have the structure
-    });
-  });
-
-  // Add pages to their respective folders
-  allFolders.forEach(f => {
-    const folderNode = folderMap.get(f.id);
-    f.pages.forEach(p => {
-      folderNode.children.push({
-        id: p.id,
-        name: p.title,
-        type: 'page'
       });
-    });
+      
+      const rootPages = await db.page.findMany({
+        where: { workspaceId: workspaceId, folderId: null },
+        orderBy: { order: 'asc' }
+      });
+
+      const folderMap = new Map<string, any>();
+      
+      allFolders.forEach(f => {
+        folderMap.set(f.id, { 
+          id: f.id, 
+          name: f.name, 
+          type: 'folder', 
+          children: [],
+          isOpen: false
+        });
+      });
+
+      allFolders.forEach(f => {
+        const folderNode = folderMap.get(f.id);
+        f.pages.forEach(p => {
+          folderNode.children.push({
+            id: p.id,
+            name: p.title,
+            type: 'page'
+          });
+        });
+      });
+
+      allFolders.forEach(f => {
+        const node = folderMap.get(f.id);
+        if (f.parentId && folderMap.has(f.parentId)) {
+          folderMap.get(f.parentId).children.push(node);
+        } else {
+          treeItems.push(node);
+        }
+      });
+
+      rootPages.forEach(p => {
+        treeItems.push({
+          id: p.id,
+          name: p.title,
+          type: 'page'
+        });
+      });
+  } else {
+      const sharedPages = await db.page.findMany({
+          where: {
+              workspaceId: workspaceId,
+              collaborators: { some: { id: session.user.id } }
+          },
+          orderBy: { order: 'asc' }
+      });
+
+      if (sharedPages.length === 0) {
+          redirect("/dashboard");
+      }
+
+      treeItems = sharedPages.map(p => ({
+          id: p.id,
+          name: p.title,
+          type: 'page'
+      }));
+  }
+
+  // Fetch pages shared with me from OTHER workspaces
+  const otherSharedPages = await db.page.findMany({
+      where: {
+          collaborators: { some: { id: session.user.id } },
+          workspaceId: { not: workspaceId }
+      },
+      include: {
+          workspace: true
+      },
+      orderBy: { updatedAt: 'desc' }
   });
 
-  const treeItems: any[] = [];
-
-  // Build folder hierarchy
-  allFolders.forEach(f => {
-    const node = folderMap.get(f.id);
-    if (f.parentId && folderMap.has(f.parentId)) {
-      folderMap.get(f.parentId).children.push(node);
-    } else {
-      treeItems.push(node);
-    }
-  });
-
-  // Add root pages
-  rootPages.forEach(p => {
-    treeItems.push({
+  const formattedSharedPages = otherSharedPages.map(p => ({
       id: p.id,
-      name: p.title,
-      type: 'page'
-    });
-  });
-
-  // Sort items: Folders first, then pages, or alphabetical? 
-  // Let's sort by name for now, or keep folders first.
-  // A simple sort function could be added here.
-
-
+      title: p.title,
+      workspaceId: p.workspaceId,
+      workspaceName: p.workspace.name
+  }));
 
   const user = {
     name: session.user.name ?? "User",
@@ -130,6 +158,8 @@ export default async function WorkspaceLayout({
           items={treeItems} 
           user={user}
           workspaces={workspaces}
+          isOwner={isOwner}
+          sharedPages={formattedSharedPages}
         />
         <SidebarInset>
           <div className="flex-1 overflow-hidden">

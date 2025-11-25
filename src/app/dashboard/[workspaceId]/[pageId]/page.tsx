@@ -15,9 +15,17 @@ export default async function PageEditor({
 
   const page = await db.page.findUnique({
     where: { id: pageId },
+    include: { workspace: true, collaborators: true }
   });
 
   if (!page) redirect("/dashboard");
+
+  const isOwner = page.workspace.ownerId === session.user.id;
+  const isCollaborator = page.collaborators.some(c => c.id === session.user.id);
+  
+  if (!isOwner && !isCollaborator) {
+      redirect("/dashboard");
+  }
 
   return (
     <div className="py-12 px-8 h-full">

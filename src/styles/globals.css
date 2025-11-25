@@ -183,3 +183,42 @@ div[data-id="blocknote-editor"] {
 .bn-editor * {
   color: var(--foreground);
 }
+
+/* Collaboration Cursor Styles */
+.collaboration-cursor__caret,
+.collaboration-carets__caret {
+  border-left: 1px solid #0d0d0d;
+  border-right: 1px solid #0d0d0d;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  position: relative;
+  word-break: normal;
+}
+
+/* Render the label above the caret */
+.collaboration-cursor__label,
+.collaboration-carets__label {
+  border-radius: 3px 3px 3px 0;
+  color: #fff; /* Use white text for better contrast on colored backgrounds */
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  left: -1px;
+  line-height: normal;
+  padding: 0.1rem 0.3rem;
+  position: absolute;
+  top: -1.4em;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 10; /* Ensure label is above content */
+  /* Background color is set inline by the element */
+}
+
+/* Override selection background color if it's too aggressive */
+/* This might be .tiptap-selection or similar depending on implementation */
+.ProseMirror-selectednode,
+::selection {
+  background-color: var(--sidebar-accent); /* Use a theme color for consistency */
+  color: inherit;
+}

@@ -44,7 +44,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronRight, FileText, Folder, FolderOpen, Plus, Settings, Loader2, GalleryVerticalEnd, GripVertical } from "lucide-react";
+import { ChevronRight, FileText, Folder, FolderOpen, Plus, Settings, Loader2, GalleryVerticalEnd, GripVertical, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
 import { TeamSwitcher } from "./team-switcher";
@@ -74,16 +74,27 @@ type FlatItem = TreeItem & {
   index: number;
 };
 
+type SharedPage = {
+  id: string;
+  title: string;
+  workspaceId: string;
+  workspaceName: string;
+};
+
 export function AppSidebar({
   workspaceId,
   items: initialItems,
   user,
   workspaces,
+  isOwner = true,
+  sharedPages = [],
 }: {
   workspaceId: string;
   items: TreeItem[];
   user: { name: string; email: string; avatar: string };
   workspaces: { name: string; plan: string }[];
+  isOwner?: boolean;
+  sharedPages?: SharedPage[];
 }) {
   const router = useRouter();
   const [items, setItems] = useState<TreeItem[]>(initialItems);
@@ -320,6 +331,8 @@ export function AppSidebar({
     logo: GalleryVerticalEnd,
   }));
 
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -329,6 +342,7 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center justify-between pr-2">
             <span className="font-serif">Platform</span>
+            {isOwner && (
             <div className="flex items-center gap-1">
               <button 
                 onClick={handleCreatePage} 
@@ -346,6 +360,7 @@ export function AppSidebar({
                  <Folder className="h-4 w-4" />
               </button>
             </div>
+            )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <DndContext
@@ -374,6 +389,32 @@ export function AppSidebar({
             </DndContext>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {sharedPages && sharedPages.length > 0 && (
+            <SidebarGroup>
+                <SidebarGroupLabel className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Shared with me</span>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        {sharedPages.map((page) => (
+                            <SidebarMenuItem key={page.id}>
+                                <SidebarMenuButton asChild isActive={pathname === `/dashboard/${page.workspaceId}/${page.id}`}>
+                                    <a href={`/dashboard/${page.workspaceId}/${page.id}`} className="flex items-center gap-2">
+                                        <FileText className="flex-shrink-0" />
+                                        <div className="flex flex-col overflow-hidden">
+                                            <span className="truncate">{page.title}</span>
+                                            <span className="text-[10px] text-muted-foreground truncate">in {page.workspaceName}</span>
+                                        </div>
+                                    </a>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        )}
 
         <SidebarGroup className="mt-auto group-data-[collapsible=icon]:hidden">
           <SidebarGroupContent>
