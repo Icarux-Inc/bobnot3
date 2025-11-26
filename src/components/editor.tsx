@@ -4,6 +4,8 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNoteWithLiveblocks } from "@liveblocks/react-blocknote";
 import { useIsEditorReady } from "@liveblocks/react-blocknote";
 import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
+import { useTheme } from "next-themes";
+import { useToast } from "@/components/toast-provider";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { RoomProvider, ClientSideSuspense } from "@liveblocks/react/suspense";
@@ -25,6 +27,9 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
   pageId: string, 
   onStatusChange: (status: "saved" | "saving" | "unsaved") => void 
 }) {
+  const { theme, resolvedTheme } = useTheme();
+  const { showToast } = useToast();
+  
   // Create BlockNote editor with Liveblocks collaboration
   // The options object must be stable to prevent editor recreation
   const editorOptions = useMemo(() => ({
@@ -74,6 +79,48 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     };
   }, [editor, saveToDatabase, onStatusChange]);
 
+  // Add copy functionality for code blocks
+  useEffect(() => {
+    const handleCopyClick = async (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const codeBlock = target.closest('[data-content-type="codeBlock"]');
+      
+      if (!codeBlock) return;
+      
+      // Check if click is in the copy button area (right side of header)
+      const rect = codeBlock.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const clickY = event.clientY - rect.top;
+      
+      // Copy button area: right 60px, top 44px (header height)
+      if (clickX >= rect.width - 60 && clickX <= rect.width - 20 && clickY >= 8 && clickY <= 36) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Get the code content
+        const preElement = codeBlock.querySelector('pre');
+        const codeContent = preElement?.textContent || '';
+        
+        try {
+          await navigator.clipboard.writeText(codeContent);
+          
+          // Show success toast
+          showToast("Code copied to clipboard!", "success");
+        } catch (err) {
+          console.error('Failed to copy code:', err);
+          showToast("Failed to copy code", "error");
+        }
+      }
+    };
+
+    // Add event listener to the document to catch all clicks
+    document.addEventListener('click', handleCopyClick);
+    
+    return () => {
+      document.removeEventListener('click', handleCopyClick);
+    };
+  }, []);
+
   if (!editor || !isReady) {
     return (
       <div className="pl-[54px] pr-6 space-y-4">
@@ -87,7 +134,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
   return (
     <BlockNoteView 
       editor={editor} 
-      theme="light" 
+      theme={resolvedTheme === "dark" ? "dark" : "light"} 
     />
   );
 });

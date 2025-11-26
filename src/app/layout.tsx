@@ -5,6 +5,8 @@ import { Bricolage_Grotesque } from "next/font/google";
 
 import { TRPCReactProvider } from "@/trpc/react";
 import { LiveblocksProviderWrapper } from "@/components/liveblocks-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@/components/toast-provider";
 
 export const metadata: Metadata = {
   title: "bobnot3",
@@ -28,11 +30,20 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bricolage.variable}`}>
       <body>
-        <TRPCReactProvider>
-          <LiveblocksProviderWrapper>
-            {children}
-          </LiveblocksProviderWrapper>
-        </TRPCReactProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ToastProvider>
+            <TRPCReactProvider>
+              <LiveblocksProviderWrapper>
+                {children}
+              </LiveblocksProviderWrapper>
+            </TRPCReactProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
