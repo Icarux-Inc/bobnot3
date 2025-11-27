@@ -135,6 +135,12 @@ export function AppSidebar({
     setMounted(true);
   }, []);
 
+  // Prefetch page data on hover for instant loading
+  const utils = api.useUtils();
+  const prefetchPage = useCallback((pageId: string) => {
+    void utils.page.getPage.prefetch({ pageId });
+  }, [utils]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -338,7 +344,7 @@ export function AppSidebar({
                 <SidebarMenu className="ml-2">
                     <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                         {items.map((item) => (
-                            <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} isOwner={isOwner} />
+                            <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} isOwner={isOwner} prefetchPage={prefetchPage} />
                         ))}
                     </SortableContext>
                 </SidebarMenu>
@@ -377,7 +383,11 @@ export function AppSidebar({
                                     className="h-auto py-2.5 items-start"
                                     tooltip={`${page.title} • ${page.workspaceName}`}
                                 >
-                                    <Link href={`/dashboard/${page.workspaceId}/${page.id}`} className="flex items-center gap-2">
+                                    <Link 
+                                        href={`/dashboard/${page.workspaceId}/${page.id}`} 
+                                        className="flex items-center gap-2"
+                                        onMouseEnter={() => prefetchPage(page.id)}
+                                    >
                                         <FileText className="h-4 w-4 shrink-0 mt-0.5" />
                                         <div className="flex flex-col gap-0.5 overflow-hidden">
                                             <span className="truncate font-medium leading-none">{page.title}</span>
@@ -470,10 +480,12 @@ function TreeItemRenderer({
   item,
   workspaceId,
   isOwner,
+  prefetchPage,
 }: {
   item: TreeItem;
   workspaceId: string;
   isOwner?: boolean;
+  prefetchPage: (pageId: string) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -611,6 +623,7 @@ function TreeItemRenderer({
                             item={child}
                             workspaceId={workspaceId}
                             isOwner={isOwner}
+                            prefetchPage={prefetchPage}
                             />
                         ))}
                     </SortableContext>
@@ -646,7 +659,11 @@ function TreeItemRenderer({
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
         <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive} tooltip={item.name} className="cursor-grab active:cursor-grabbing group/row relative overflow-hidden">
-                <Link href={`/dashboard/${workspaceId}/${item.id}`} className={`flex items-center gap-2 w-full ${isActive ? '' : 'text-muted-foreground/70 hover:text-foreground transition-colors'}`}>
+                <Link 
+                    href={`/dashboard/${workspaceId}/${item.id}`} 
+                    className={`flex items-center gap-2 w-full ${isActive ? '' : 'text-muted-foreground/70 hover:text-foreground transition-colors'}`}
+                    onMouseEnter={() => prefetchPage(item.id)}
+                >
                     <FileText className="flex-shrink-0" />
                     <span className="truncate transition-all duration-200 group-hover/row:pr-8">{item.name}</span>
                     
