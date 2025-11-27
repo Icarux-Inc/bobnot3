@@ -487,7 +487,6 @@ function TreeItemRenderer({
   isOwner?: boolean;
   prefetchPage: (pageId: string) => void;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const isActive = pathname === `/dashboard/${workspaceId}/${item.id}`;
   const [isRenaming, setIsRenaming] = useState(false);

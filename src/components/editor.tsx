@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { RoomProvider, ClientSideSuspense } from "@liveblocks/react/suspense";
 import type { Block } from "@blocknote/core";
-import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareDialog } from "@/components/share-dialog";
 
@@ -93,11 +92,11 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
       
       if (keyboardEvent.key === 'Tab') {
         try {
-          if (!editor || !editor.isEditable) return;
+          if (!editor?.isEditable) return;
 
           const selection = editor.getSelection();
           
-          if (selection && selection.blocks && selection.blocks.length > 1) {
+          if (selection?.blocks && selection.blocks.length > 1) {
             const listBlocks = selection.blocks.filter(block => 
               block.type === 'bulletListItem' || block.type === 'numberedListItem'
             );
@@ -110,14 +109,14 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
               
               setTimeout(() => {
                 try {
-                  if (!editor || !editor.isEditable) return;
+                  if (!editor?.isEditable) return;
 
                   const processBlocks = async (blocks: typeof listBlocks, isOutdent: boolean) => {
                     for (const block of blocks) {
                       try {
                         await new Promise(resolve => setTimeout(resolve, 5));
                         
-                        if (editor && editor.isEditable) {
+                        if (editor?.isEditable) {
                           editor.focus();
                           editor.setTextCursorPosition(block.id, "end");
                           await new Promise(resolve => setTimeout(resolve, 5));
@@ -171,11 +170,10 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
 
     const handleSelectionChange = () => {
       try {
-        if (!editor || !editor.isEditable) return;
+        if (!editor?.isEditable) return;
 
         const selection = editor.getSelection();
-        const hasMultipleListItems = selection && 
-          selection.blocks && 
+        const hasMultipleListItems = selection?.blocks && 
           selection.blocks.length > 1 &&
           selection.blocks.some(block => 
             block.type === 'bulletListItem' || block.type === 'numberedListItem'
@@ -234,7 +232,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
       if (keyboardEvent.key !== ' ') return;
       
       try {
-        if (!editor || !editor.isEditable) return;
+        if (!editor?.isEditable) return;
         
         const currentBlock = editor.getTextCursorPosition().block;
         if (!currentBlock || currentBlock.type !== 'paragraph') return;
@@ -246,7 +244,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
         // Check if the text ends with "[]"
         const textContent = blockContent.map(item => {
           if (typeof item === 'string') return item;
-          if (typeof item === 'object' && 'text' in item) return (item as any).text || '';
+          if (typeof item === 'object' && 'text' in item) return (item as { text?: string }).text ?? '';
           return '';
         }).join('');
         
@@ -258,7 +256,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
           
           // Immediately convert without any delay to prevent flicker
           try {
-            if (!editor || !editor.isEditable) return;
+            if (!editor?.isEditable) return;
             
             // Update the block to be a checkListItem
             editor.updateBlock(currentBlock.id, {
@@ -455,7 +453,6 @@ function BlockNoteEditorInner({
   pageId: string, 
   title: string 
 }) {
-  const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
   const [status, setStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const saveTitleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -478,7 +475,7 @@ function BlockNoteEditorInner({
       console.error("Failed to save title", error);
       setStatus("unsaved");
     }
-  }, [pageId, router]);
+  }, [pageId]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
