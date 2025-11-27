@@ -218,6 +218,104 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     };
   }, [editor, isReady]);
 
+  // Fix checkbox cursor positioning for "[] " markdown syntax
+  useEffect(() => {
+    if (!editor || !isReady) return;
+
+    // Add a small delay to ensure DOM is ready
+    const setupTimeout = setTimeout(() => {
+      setupEventListeners();
+    }, 100);
+
+    const handleKeyDown = (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent;
+      
+      // Only handle space key
+      if (keyboardEvent.key !== ' ') return;
+      
+      try {
+        if (!editor || !editor.isEditable) return;
+        
+        const currentBlock = editor.getTextCursorPosition().block;
+        if (!currentBlock || currentBlock.type !== 'paragraph') return;
+        
+        // Get the current text content
+        const blockContent = currentBlock.content;
+        if (!Array.isArray(blockContent) || blockContent.length === 0) return;
+        
+        // Check if the text ends with "[]"
+        const textContent = blockContent.map(item => {
+          if (typeof item === 'string') return item;
+          if (typeof item === 'object' && 'text' in item) return (item as any).text || '';
+          return '';
+        }).join('');
+        
+        if (textContent === '[]') {
+          // Prevent ALL default behaviors more aggressively
+          keyboardEvent.preventDefault();
+          keyboardEvent.stopPropagation();
+          keyboardEvent.stopImmediatePropagation();
+          
+          // Immediately convert without any delay to prevent flicker
+          try {
+            if (!editor || !editor.isEditable) return;
+            
+            // Update the block to be a checkListItem
+            editor.updateBlock(currentBlock.id, {
+              type: 'checkListItem',
+              props: { checked: false },
+              content: []
+            });
+            
+            // Position cursor at the end of the checkbox immediately
+            editor.setTextCursorPosition(currentBlock.id, "end");
+            
+          } catch (error) {
+            console.error('Error manually creating checkbox:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error in checkbox keydown handler:', error);
+      }
+    };
+
+    const setupEventListeners = () => {
+      // Add event listener to capture space key
+      const editorElement = document.querySelector('[data-id="blocknote-editor"]');
+      
+      if (editorElement) {
+        // Use capture phase with highest priority
+        editorElement.addEventListener('keydown', handleKeyDown, { capture: true, passive: false });
+        
+        // Try adding to the ProseMirror editor specifically with highest priority
+        const proseMirrorElement = editorElement.querySelector('.ProseMirror');
+        if (proseMirrorElement) {
+          proseMirrorElement.addEventListener('keydown', handleKeyDown, { capture: true, passive: false });
+        }
+      }
+      
+      // Always add to document as backup with highest priority
+      document.addEventListener('keydown', handleKeyDown, { capture: true, passive: false });
+    };
+    
+    // Try immediate setup
+    setupEventListeners();
+
+    return () => {
+      clearTimeout(setupTimeout);
+      
+      const editorElement = document.querySelector('[data-id="blocknote-editor"]');
+      if (editorElement) {
+        editorElement.removeEventListener('keydown', handleKeyDown, { capture: true });
+        const proseMirrorElement = editorElement.querySelector('.ProseMirror');
+        if (proseMirrorElement) {
+          proseMirrorElement.removeEventListener('keydown', handleKeyDown, { capture: true });
+        }
+      }
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [editor, isReady]);
+
   // Add copy functionality for code blocks
   useEffect(() => {
     const handleCopyClick = (event: MouseEvent) => {
