@@ -84,6 +84,140 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     };
   }, [editor, saveToDatabase, onStatusChange]);
 
+  // Enable bulk indentation for multiple selected bullet points
+  useEffect(() => {
+    if (!editor || !isReady) return;
+
+    const handleKeyDown = (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent;
+      
+      if (keyboardEvent.key === 'Tab') {
+        try {
+          if (!editor || !editor.isEditable) return;
+
+          const selection = editor.getSelection();
+          
+          if (selection && selection.blocks && selection.blocks.length > 1) {
+            const listBlocks = selection.blocks.filter(block => 
+              block.type === 'bulletListItem' || block.type === 'numberedListItem'
+            );
+            
+            if (listBlocks.length > 0) {
+              // Prevent toolbar from capturing Tab key
+              keyboardEvent.preventDefault();
+              keyboardEvent.stopPropagation();
+              keyboardEvent.stopImmediatePropagation();
+              
+              setTimeout(() => {
+                try {
+                  if (!editor || !editor.isEditable) return;
+
+                  const processBlocks = async (blocks: typeof listBlocks, isOutdent: boolean) => {
+                    for (const block of blocks) {
+                      try {
+                        await new Promise(resolve => setTimeout(resolve, 5));
+                        
+                        if (editor && editor.isEditable) {
+                          editor.focus();
+                          editor.setTextCursorPosition(block.id, "end");
+                          await new Promise(resolve => setTimeout(resolve, 5));
+                          
+                          if (isOutdent) {
+                            editor.unnestBlock();
+                          } else {
+                            editor.nestBlock();
+                          }
+                        }
+                      } catch (error) {
+                        console.error(`Error ${isOutdent ? 'outdenting' : 'indenting'} block:`, error);
+                      }
+                    }
+                  };
+
+                  void processBlocks(listBlocks, keyboardEvent.shiftKey);
+                } catch (error) {
+                  console.error('Error in bulk indentation:', error);
+                }
+              }, 0);
+              
+              return false;
+            }
+          }
+        } catch (error) {
+          console.error('Error handling bulk indentation:', error);
+        }
+      }
+    };
+
+    // Capture Tab events before toolbar can intercept them
+    document.addEventListener('keydown', handleKeyDown, true);
+    
+    const editorElement = document.querySelector('[data-id="blocknote-editor"]');
+    if (editorElement) {
+      editorElement.addEventListener('keydown', handleKeyDown, true);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      if (editorElement) {
+        editorElement.removeEventListener('keydown', handleKeyDown, true);
+      }
+    };
+  }, [editor, isReady]);
+
+  // Hide toolbar when multiple list items are selected to prevent Tab interference
+  useEffect(() => {
+    if (!editor || !isReady) return;
+
+    const handleSelectionChange = () => {
+      try {
+        if (!editor || !editor.isEditable) return;
+
+        const selection = editor.getSelection();
+        const hasMultipleListItems = selection && 
+          selection.blocks && 
+          selection.blocks.length > 1 &&
+          selection.blocks.some(block => 
+            block.type === 'bulletListItem' || block.type === 'numberedListItem'
+          );
+
+        setTimeout(() => {
+          const toolbar = document.querySelector('.bn-formatting-toolbar, .bn-selection-toolbar, [data-test="formatting-toolbar"]');
+          if (toolbar) {
+            (toolbar as HTMLElement).style.display = hasMultipleListItems ? 'none' : '';
+          }
+        }, 10);
+      } catch (error) {
+        console.error('Error handling selection change:', error);
+      }
+    };
+
+    let unsubscribe: (() => void) | null = null;
+    
+    try {
+      unsubscribe = editor.onSelectionChange(handleSelectionChange);
+    } catch (error) {
+      console.error('Error setting up selection change listener:', error);
+    }
+    
+    return () => {
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error('Error cleaning up selection change listener:', error);
+        }
+      }
+      
+      setTimeout(() => {
+        const toolbar = document.querySelector('.bn-formatting-toolbar, .bn-selection-toolbar, [data-test="formatting-toolbar"]');
+        if (toolbar) {
+          (toolbar as HTMLElement).style.display = '';
+        }
+      }, 10);
+    };
+  }, [editor, isReady]);
+
   // Add copy functionality for code blocks
   useEffect(() => {
     const handleCopyClick = (event: MouseEvent) => {
