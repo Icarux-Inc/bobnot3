@@ -98,7 +98,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
           
           if (selection?.blocks && selection.blocks.length > 1) {
             const listBlocks = selection.blocks.filter(block => 
-              block.type === 'bulletListItem' || block.type === 'numberedListItem'
+              block.type === 'bulletListItem' || block.type === 'numberedListItem' || block.type === 'checkListItem'
             );
             
             if (listBlocks.length > 0) {
@@ -176,7 +176,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
         const hasMultipleListItems = selection?.blocks && 
           selection.blocks.length > 1 &&
           selection.blocks.some(block => 
-            block.type === 'bulletListItem' || block.type === 'numberedListItem'
+            block.type === 'bulletListItem' || block.type === 'numberedListItem' || block.type === 'checkListItem'
           );
 
         setTimeout(() => {
