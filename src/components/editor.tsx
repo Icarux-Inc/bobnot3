@@ -406,18 +406,18 @@ function BlockNoteEditorInner({
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 relative">
+    <div className="max-w-5xl mx-auto space-y-4 relative overflow-hidden">
       <div className="flex items-center justify-between pl-[54px] pr-6">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Input
             value={title}
             onChange={handleTitleChange}
-            className="font-serif font-medium border-none px-0 shadow-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent"
+            className="font-serif font-medium border-none px-0 shadow-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent w-full"
             placeholder="Untitled"
             style={{ fontSize: '2rem' }}
           />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-shrink-0">
             <ShareDialog pageId={pageId} />
             <div className="text-xs text-muted-foreground w-20 text-right">
             {status === "saving" && <span className="flex items-center justify-end gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Saving</span>}
@@ -426,7 +426,9 @@ function BlockNoteEditorInner({
             </div>
         </div>
       </div>
-      <BlockNoteEditor pageId={pageId} onStatusChange={handleStatusChange} />
+      <div className="overflow-hidden">
+        <BlockNoteEditor pageId={pageId} onStatusChange={handleStatusChange} />
+      </div>
     </div>
   );
 }

@@ -149,9 +149,14 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-weight: 300;
+    overflow-x: hidden;
     /* Subtle dot grid pattern with a slight radial fade */
     background-image:
       radial-gradient(circle at center, transparent 0%, var(--color-background) 100%),
@@ -182,6 +187,25 @@ div[data-id="blocknote-editor"] {
 .bn-editor,
 .bn-editor * {
   color: var(--foreground);
+}
+
+/* Fix horizontal scrolling by ensuring proper text wrapping */
+.bn-editor,
+.bn-editor * {
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  max-width: 100% !important;
+}
+
+/* Ensure BlockNote content containers don't overflow */
+.bn-editor [data-content-type],
+.bn-editor .ProseMirror,
+.bn-editor .bn-block-content {
+  max-width: 100% !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
 }
 
 /* Collaboration Cursor Styles */
@@ -312,6 +336,9 @@ div[data-id="blocknote-editor"] {
   font-size: 0.875rem !important;
   line-height: 1.6 !important;
   font-weight: 400 !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  white-space: pre-wrap !important;
 }
 
 .bn-editor [data-content-type="codeBlock"] pre code {
