@@ -3,7 +3,7 @@ import { createTRPCContext } from "@/server/api/trpc";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { PageLayoutClient } from "./page-layout-client";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TRPCError } from "@trpc/server";
 
 export default async function PageLayout({
   children,
@@ -31,11 +31,15 @@ export default async function PageLayout({
 
   // Handle page errors on server
   if (pageResult.status === "rejected") {
-    const error = pageResult.reason;
-    if (error?.data?.code === "NOT_FOUND") {
-      redirect(`/dashboard/${workspaceId}`);
-    } else if (error?.data?.code === "FORBIDDEN") {
-      redirect("/dashboard");
+    const error = pageResult.reason as unknown;
+    // Type guard for TRPCError
+    if (error instanceof TRPCError || (error && typeof error === "object" && "data" in error)) {
+      const trpcError = error as { data?: { code?: string } };
+      if (trpcError.data?.code === "NOT_FOUND") {
+        redirect(`/dashboard/${workspaceId}`);
+      } else if (trpcError.data?.code === "FORBIDDEN") {
+        redirect("/dashboard");
+      }
     }
   }
 

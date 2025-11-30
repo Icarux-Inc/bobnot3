@@ -14,8 +14,6 @@ const config = {
   },
   // Enable compression
   compress: true,
-  // Optimize production builds
-  swcMinify: true,
   // Enable static page generation where possible
   output: "standalone",
   // Optimize font loading

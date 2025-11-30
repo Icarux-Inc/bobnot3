@@ -57,10 +57,8 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             headers.set("x-trpc-source", "nextjs-react");
             return headers;
           },
-          // Optimize batching - batch requests within 10ms window
-          maxBatchSize: 10,
-          // Reduce latency by batching more aggressively
-          batch: true,
+          // Enable request batching for reduced network overhead
+          // Batching is automatic and optimized by tRPC
         }),
       ],
     }),
