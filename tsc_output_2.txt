@@ -1,0 +1,5 @@
+src/app/api/chat/test-types.ts(8,5): error TS2353: Object literal may only specify known properties, and 'result' does not exist in type 'ToolResultPart'.
+src/app/api/chat/test-types.ts(15,5): error TS2353: Object literal may only specify known properties, and 'content' does not exist in type 'ToolResultPart'.
+src/app/api/chat/test-types.ts(22,5): error TS2322: Type '{}' is not assignable to type 'LanguageModelV2ToolResultOutput'.
+src/app/api/chat/test-types.ts(30,5): error TS2353: Object literal may only specify known properties, and 'args' does not exist in type 'ToolCallPart'.
+src/app/api/chat/test-types.ts(37,5): error TS2353: Object literal may only specify known properties, and 'parameters' does not exist in type 'ToolCallPart'.

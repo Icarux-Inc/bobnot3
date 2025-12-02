@@ -3,6 +3,8 @@ import { db } from "@/server/db";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { AiSidebar } from "@/components/ai/ai-sidebar";
 import { Inter } from "next/font/google";
 
 const inter = Inter({
@@ -180,9 +182,15 @@ export default async function WorkspaceLayout({
           sharedPages={formattedSharedPages}
         />
         <SidebarInset>
-          <div className="flex-1 overflow-hidden">
-            {children}
-          </div>
+          <ResizablePanelGroup direction="horizontal" className="h-full items-stretch">
+            <ResizablePanel defaultSize={75} minSize={30}>
+              <div className="flex h-full flex-col overflow-hidden">
+                {children}
+              </div>
+            </ResizablePanel>
+            <ResizableHandle />
+            <AiSidebar workspaceId={contextWorkspaceId} />
+          </ResizablePanelGroup>
         </SidebarInset>
       </SidebarProvider>
     </div>

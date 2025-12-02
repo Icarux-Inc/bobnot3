@@ -33,8 +33,18 @@ export async function POST(request: Request) {
         return new Response("Unauthorized", { status: 401 });
     }
 
-    // Get the room from the request body
-    const { room } = await request.json() as { room: string };
+    // Log request details for debugging
+    console.log(`Liveblocks Auth: ${request.method}`);
+
+    // Parse body safely
+    let room;
+    try {
+        const body = await request.json();
+        room = body.room;
+    } catch (error) {
+        console.error("Error parsing request body:", error);
+        return new Response("Invalid request body", { status: 400 });
+    }
 
     if (!room) {
         return new Response("Missing room", { status: 400 });

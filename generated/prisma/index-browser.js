@@ -178,7 +178,9 @@ exports.Prisma.PageScalarFieldEnum = {
   updatedAt: 'updatedAt',
   workspaceId: 'workspaceId',
   folderId: 'folderId',
-  order: 'order'
+  order: 'order',
+  contentHash: 'contentHash',
+  lastEmbeddedAt: 'lastEmbeddedAt'
 };
 
 exports.Prisma.VerificationTokenScalarFieldEnum = {
