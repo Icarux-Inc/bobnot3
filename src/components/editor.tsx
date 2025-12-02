@@ -17,6 +17,7 @@ import { CoverImage } from "@/components/cover-image";
 import { BannerImage } from "@/components/banner-image";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Dynamically import BlockNote styles to avoid blocking lazy load
 // This ensures CSS only loads when the editor component is actually used
@@ -63,11 +64,47 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     }
   }, [pageId, onStatusChange]);
 
+  // Track toggle list content to prevent it from moving when Enter is pressed
+  const toggleListContentRef = useRef<{ blockId: string; content: any } | null>(null);
+
   // Handle editor changes
   useEffect(() => {
     if (!editor) return;
 
     const handleChange = () => {
+      // Check if we need to fix toggle list content movement
+      if (toggleListContentRef.current) {
+        const { blockId, content: originalContent } = toggleListContentRef.current;
+        const currentBlock = editor.getBlock(blockId);
+
+        if (currentBlock && currentBlock.type === 'toggleListItem') {
+          const currentContentStr = JSON.stringify(currentBlock.content || []);
+          const originalContentStr = JSON.stringify(originalContent);
+
+          // If content was moved (original block is now empty), restore it
+          if (currentContentStr !== originalContentStr &&
+              (currentContentStr === '[]' || currentContentStr === 'null' || currentContentStr === '""')) {
+            setTimeout(() => {
+              try {
+                editor.updateBlock(blockId, {
+                  content: originalContent,
+                });
+                toggleListContentRef.current = null;
+              } catch (error) {
+                console.error('Error restoring toggle list content:', error);
+                toggleListContentRef.current = null;
+              }
+            }, 0);
+          } else {
+            // Content is still there, clear the ref
+            toggleListContentRef.current = null;
+          }
+        } else {
+          // Not a toggle list item anymore, clear the ref
+          toggleListContentRef.current = null;
+        }
+      }
+
       onStatusChange("unsaved");
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -168,6 +205,150 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     };
   }, [editor, isReady]);
 
+  // Fix toggle list Enter key behavior - prevent content from moving to new list item
+  useEffect(() => {
+    if (!editor || !isReady) return;
+
+    const handleEnterKey = async (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent;
+
+      if (keyboardEvent.key !== 'Enter' || keyboardEvent.shiftKey) return;
+
+      try {
+        if (!editor?.isEditable) return;
+
+        const textCursorPosition = editor.getTextCursorPosition();
+        const currentBlock = textCursorPosition.block;
+
+        // Check if we're in a toggle list
+        if (currentBlock?.type === 'toggleListItem') {
+          // Get the current block content before Enter is processed
+          const blockBeforeEnter = editor.getBlock(currentBlock.id);
+          if (!blockBeforeEnter) return;
+
+          // Check if block has content by converting to string
+          const contentStr = JSON.stringify(blockBeforeEnter.content);
+          const hasContent = contentStr && contentStr !== '[]' && contentStr !== 'null' && contentStr !== '""';
+
+          if (hasContent) {
+            // Prevent BlockNote's default Enter behavior completely
+            keyboardEvent.preventDefault();
+            keyboardEvent.stopPropagation();
+            keyboardEvent.stopImmediatePropagation();
+
+            // Store the original content
+            const originalContent = JSON.parse(JSON.stringify(blockBeforeEnter.content));
+
+            // Store in ref for onChange handler as backup
+            toggleListContentRef.current = {
+              blockId: currentBlock.id,
+              content: originalContent,
+            };
+
+            // Manually insert a new empty toggle list item
+            try {
+              await editor.insertBlocks(
+                [{
+                  type: 'toggleListItem',
+                  content: [],
+                }],
+                currentBlock.id,
+                'after'
+              );
+
+              // Small delay to ensure the insert completed
+              await new Promise(resolve => setTimeout(resolve, 10));
+
+              // Verify original block still has content, restore if needed
+              const blockAfterInsert = editor.getBlock(currentBlock.id);
+              if (blockAfterInsert) {
+                const contentAfterStr = JSON.stringify(blockAfterInsert.content || []);
+                const originalContentStr = JSON.stringify(originalContent);
+
+                if (contentAfterStr !== originalContentStr &&
+                    (contentAfterStr === '[]' || contentAfterStr === 'null' || contentAfterStr === '""')) {
+                  // Content was moved, restore it
+                  editor.updateBlock(currentBlock.id, {
+                    content: originalContent,
+                  });
+                }
+              }
+
+              // Find and move cursor to the new toggle list item
+              setTimeout(() => {
+                try {
+                  const document = editor.document;
+                  const findNextToggle = (blocks: Block[], targetId: string): Block | null => {
+                    for (let i = 0; i < blocks.length; i++) {
+                      const block = blocks[i];
+                      if (!block) continue;
+
+                      if (block.id === targetId) {
+                        // Found the target, return the next sibling if it's a toggle list
+                        if (i + 1 < blocks.length) {
+                          const nextBlock = blocks[i + 1];
+                          if (nextBlock && nextBlock.type === 'toggleListItem') {
+                            return nextBlock;
+                          }
+                        }
+                        return null;
+                      }
+                      if (block.children) {
+                        const found = findNextToggle(block.children, targetId);
+                        if (found) return found;
+                      }
+                    }
+                    return null;
+                  };
+
+                  const nextToggle = findNextToggle(document, currentBlock.id);
+                  if (nextToggle) {
+                    editor.setTextCursorPosition(nextToggle.id, 'start');
+                  }
+                  toggleListContentRef.current = null;
+                } catch (error) {
+                  console.error('Error moving cursor:', error);
+                  toggleListContentRef.current = null;
+                }
+              }, 20);
+
+            } catch (error) {
+              console.error('Error inserting new toggle list item:', error);
+              toggleListContentRef.current = null;
+            }
+
+            return false;
+          }
+        }
+      } catch (error) {
+        console.error('Error handling toggle list Enter key:', error);
+      }
+    };
+
+    // Add event listener with highest priority to catch Enter before BlockNote processes it
+    const editorElement = document.querySelector('[data-id="blocknote-editor"]');
+    const proseMirrorElement = editorElement?.querySelector('.ProseMirror');
+
+    // Add to multiple elements to ensure we catch it
+    if (proseMirrorElement) {
+      proseMirrorElement.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
+    }
+    if (editorElement) {
+      editorElement.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
+    }
+    document.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
+
+    return () => {
+      if (proseMirrorElement) {
+        proseMirrorElement.removeEventListener('keydown', handleEnterKey, { capture: true });
+      }
+      if (editorElement) {
+        editorElement.removeEventListener('keydown', handleEnterKey, { capture: true });
+      }
+      document.removeEventListener('keydown', handleEnterKey, { capture: true });
+    };
+  }, [editor, isReady]);
+
   // Hide toolbar when multiple list items are selected to prevent Tab interference
   useEffect(() => {
     if (!editor || !isReady) return;
@@ -244,34 +425,122 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
         // Get the current text content
         const blockContent = currentBlock.content;
         if (!Array.isArray(blockContent) || blockContent.length === 0) return;
-        
-        // Check if the text ends with "[]"
+
+        // Get the full text content
         const textContent = blockContent.map(item => {
           if (typeof item === 'string') return item;
           if (typeof item === 'object' && 'text' in item) return (item as { text?: string }).text ?? '';
           return '';
         }).join('');
-        
-        if (textContent === '[]') {
+
+        // Check if the text starts with "[]" or "[] " (with or without space)
+        const checkboxMatch = textContent.match(/^\[\]\s*(.*)$/);
+        const isExactCheckbox = textContent === '[]';
+
+        if (checkboxMatch || isExactCheckbox) {
           // Prevent ALL default behaviors more aggressively
           keyboardEvent.preventDefault();
           keyboardEvent.stopPropagation();
           keyboardEvent.stopImmediatePropagation();
-          
+
           // Immediately convert without any delay to prevent flicker
           try {
             if (!editor?.isEditable) return;
-            
-            // Update the block to be a checkListItem
+
+            // Extract content after "[]" or "[] " from the original blockContent
+            let remainingContent: any[] = [];
+
+            if (checkboxMatch && checkboxMatch[1] && checkboxMatch[1].trim()) {
+              // There's content after "[] ", preserve it by extracting from blockContent
+              // We need to find where "[]" ends in the content array and keep everything after
+              let remainingContentStartIndex = -1;
+
+              // Iterate through blockContent to find where "[]" or "[] " ends
+              for (let i = 0; i < blockContent.length; i++) {
+                const item = blockContent[i];
+                const itemText = typeof item === 'string' ? item :
+                  (typeof item === 'object' && 'text' in item ? (item as { text?: string }).text ?? '' : '');
+
+                if (!itemText) continue;
+
+                // Check if this item contains "[]" or "[] "
+                const bracketIndex = itemText.indexOf('[]');
+                if (bracketIndex !== -1) {
+                  // Check if there's a space after "[]"
+                  const afterBracket = itemText.substring(bracketIndex + 2);
+                  if (afterBracket.startsWith(' ') || afterBracket.startsWith('\u00A0')) {
+                    const afterSpace = afterBracket.substring(1);
+
+                    if (afterSpace) {
+                      // There's content in this same item after "[] "
+                      if (typeof item === 'string') {
+                        remainingContent.push(afterSpace);
+                      } else {
+                        remainingContent.push({ ...item, text: afterSpace });
+                      }
+                    }
+                    // Add all remaining items
+                    remainingContent.push(...blockContent.slice(i + 1));
+                    remainingContentStartIndex = i + 1;
+                    break;
+                  } else if (afterBracket) {
+                    // There's content after "[]" but no space
+                    if (typeof item === 'string') {
+                      remainingContent.push(afterBracket);
+                    } else {
+                      remainingContent.push({ ...item, text: afterBracket });
+                    }
+                    // Add all remaining items
+                    remainingContent.push(...blockContent.slice(i + 1));
+                    remainingContentStartIndex = i + 1;
+                    break;
+                  } else {
+                    // "[]" is at the end of this item, content starts in next items
+                    remainingContent.push(...blockContent.slice(i + 1));
+                    remainingContentStartIndex = i + 1;
+                    break;
+                  }
+                }
+              }
+
+              // If we couldn't parse it from structure, use the regex match as fallback
+              if (remainingContent.length === 0 && checkboxMatch[1]) {
+                // Create content from the remaining text - BlockNote format
+                remainingContent = blockContent.filter((item) => {
+                  // Skip items that are part of "[]"
+                  const itemText = typeof item === 'string' ? item :
+                    (typeof item === 'object' && 'text' in item ? (item as { text?: string }).text ?? '' : '');
+                  return itemText && !itemText.includes('[]');
+                });
+
+                // If still empty, create a simple text content
+                if (remainingContent.length === 0) {
+                  remainingContent = [{ text: checkboxMatch[1] }];
+                }
+              }
+            }
+
+            // Update the block to be a checkListItem with preserved content
             editor.updateBlock(currentBlock.id, {
               type: 'checkListItem',
               props: { checked: false },
-              content: []
+              content: remainingContent
             });
-            
-            // Position cursor at the end of the checkbox immediately
-            editor.setTextCursorPosition(currentBlock.id, "end");
-            
+
+            // Position cursor at the end of the checkbox content (or start if empty)
+            setTimeout(() => {
+              try {
+                if (remainingContent.length > 0) {
+                  editor.setTextCursorPosition(currentBlock.id, "end");
+                } else {
+                  editor.setTextCursorPosition(currentBlock.id, "start");
+                }
+              } catch (error) {
+                // Fallback: just set to start to keep cursor in same block
+                editor.setTextCursorPosition(currentBlock.id, "start");
+              }
+            }, 0);
+
           } catch (error) {
             console.error('Error manually creating checkbox:', error);
           }
@@ -476,6 +745,7 @@ function BlockNoteEditorInner({
 }) {
   const router = useRouter();
   const utils = api.useUtils();
+  const isMobile = useIsMobile();
   const [title, setTitle] = useState(initialTitle);
   const [coverImage, setCoverImage] = useState(initialCoverImage);
   const [bannerImage, setBannerImage] = useState(initialBannerImage);
