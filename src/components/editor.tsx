@@ -17,7 +17,6 @@ import { CoverImage } from "@/components/cover-image";
 import { BannerImage } from "@/components/banner-image";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // Dynamically import BlockNote styles to avoid blocking lazy load
 // This ensures CSS only loads when the editor component is actually used
@@ -76,13 +75,13 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
       if (toggleListContentRef.current) {
         const { blockId, content: originalContent } = toggleListContentRef.current;
         const currentBlock = editor.getBlock(blockId);
-
+        
         if (currentBlock && currentBlock.type === 'toggleListItem') {
           const currentContentStr = JSON.stringify(currentBlock.content || []);
           const originalContentStr = JSON.stringify(originalContent);
-
+          
           // If content was moved (original block is now empty), restore it
-          if (currentContentStr !== originalContentStr &&
+          if (currentContentStr !== originalContentStr && 
               (currentContentStr === '[]' || currentContentStr === 'null' || currentContentStr === '""')) {
             setTimeout(() => {
               try {
@@ -100,11 +99,10 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
             toggleListContentRef.current = null;
           }
         } else {
-          // Not a toggle list item anymore, clear the ref
           toggleListContentRef.current = null;
         }
       }
-
+      
       onStatusChange("unsaved");
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -211,40 +209,40 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
 
     const handleEnterKey = async (event: Event) => {
       const keyboardEvent = event as KeyboardEvent;
-
+      
       if (keyboardEvent.key !== 'Enter' || keyboardEvent.shiftKey) return;
-
+      
       try {
         if (!editor?.isEditable) return;
 
         const textCursorPosition = editor.getTextCursorPosition();
         const currentBlock = textCursorPosition.block;
-
+        
         // Check if we're in a toggle list
         if (currentBlock?.type === 'toggleListItem') {
           // Get the current block content before Enter is processed
           const blockBeforeEnter = editor.getBlock(currentBlock.id);
           if (!blockBeforeEnter) return;
-
+          
           // Check if block has content by converting to string
           const contentStr = JSON.stringify(blockBeforeEnter.content);
           const hasContent = contentStr && contentStr !== '[]' && contentStr !== 'null' && contentStr !== '""';
-
+          
           if (hasContent) {
             // Prevent BlockNote's default Enter behavior completely
             keyboardEvent.preventDefault();
             keyboardEvent.stopPropagation();
             keyboardEvent.stopImmediatePropagation();
-
+            
             // Store the original content
             const originalContent = JSON.parse(JSON.stringify(blockBeforeEnter.content));
-
+            
             // Store in ref for onChange handler as backup
             toggleListContentRef.current = {
               blockId: currentBlock.id,
               content: originalContent,
             };
-
+            
             // Manually insert a new empty toggle list item
             try {
               await editor.insertBlocks(
@@ -255,17 +253,17 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                 currentBlock.id,
                 'after'
               );
-
+              
               // Small delay to ensure the insert completed
               await new Promise(resolve => setTimeout(resolve, 10));
-
+              
               // Verify original block still has content, restore if needed
               const blockAfterInsert = editor.getBlock(currentBlock.id);
               if (blockAfterInsert) {
                 const contentAfterStr = JSON.stringify(blockAfterInsert.content || []);
                 const originalContentStr = JSON.stringify(originalContent);
-
-                if (contentAfterStr !== originalContentStr &&
+                
+                if (contentAfterStr !== originalContentStr && 
                     (contentAfterStr === '[]' || contentAfterStr === 'null' || contentAfterStr === '""')) {
                   // Content was moved, restore it
                   editor.updateBlock(currentBlock.id, {
@@ -273,7 +271,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                   });
                 }
               }
-
+              
               // Find and move cursor to the new toggle list item
               setTimeout(() => {
                 try {
@@ -282,7 +280,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                     for (let i = 0; i < blocks.length; i++) {
                       const block = blocks[i];
                       if (!block) continue;
-
+                      
                       if (block.id === targetId) {
                         // Found the target, return the next sibling if it's a toggle list
                         if (i + 1 < blocks.length) {
@@ -300,7 +298,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                     }
                     return null;
                   };
-
+                  
                   const nextToggle = findNextToggle(document, currentBlock.id);
                   if (nextToggle) {
                     editor.setTextCursorPosition(nextToggle.id, 'start');
@@ -311,12 +309,12 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                   toggleListContentRef.current = null;
                 }
               }, 20);
-
+              
             } catch (error) {
               console.error('Error inserting new toggle list item:', error);
               toggleListContentRef.current = null;
             }
-
+            
             return false;
           }
         }
@@ -328,7 +326,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     // Add event listener with highest priority to catch Enter before BlockNote processes it
     const editorElement = document.querySelector('[data-id="blocknote-editor"]');
     const proseMirrorElement = editorElement?.querySelector('.ProseMirror');
-
+    
     // Add to multiple elements to ensure we catch it
     if (proseMirrorElement) {
       proseMirrorElement.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
@@ -337,7 +335,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
       editorElement.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
     }
     document.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
-
+    
     return () => {
       if (proseMirrorElement) {
         proseMirrorElement.removeEventListener('keydown', handleEnterKey, { capture: true });
@@ -425,52 +423,59 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
         // Get the current text content
         const blockContent = currentBlock.content;
         if (!Array.isArray(blockContent) || blockContent.length === 0) return;
-
+        
         // Get the full text content
         const textContent = blockContent.map(item => {
           if (typeof item === 'string') return item;
           if (typeof item === 'object' && 'text' in item) return (item as { text?: string }).text ?? '';
           return '';
         }).join('');
-
+        
         // Check if the text starts with "[]" or "[] " (with or without space)
         const checkboxMatch = textContent.match(/^\[\]\s*(.*)$/);
         const isExactCheckbox = textContent === '[]';
-
+        
         if (checkboxMatch || isExactCheckbox) {
           // Prevent ALL default behaviors more aggressively
           keyboardEvent.preventDefault();
           keyboardEvent.stopPropagation();
           keyboardEvent.stopImmediatePropagation();
-
+          
           // Immediately convert without any delay to prevent flicker
           try {
             if (!editor?.isEditable) return;
-
+            
             // Extract content after "[]" or "[] " from the original blockContent
             let remainingContent: any[] = [];
-
+            
             if (checkboxMatch && checkboxMatch[1] && checkboxMatch[1].trim()) {
               // There's content after "[] ", preserve it by extracting from blockContent
               // We need to find where "[]" ends in the content array and keep everything after
+              let foundBracketStart = false;
+              let foundBracketEnd = false;
+              let foundSpaceAfterBracket = false;
               let remainingContentStartIndex = -1;
-
+              
               // Iterate through blockContent to find where "[]" or "[] " ends
               for (let i = 0; i < blockContent.length; i++) {
                 const item = blockContent[i];
-                const itemText = typeof item === 'string' ? item :
+                const itemText = typeof item === 'string' ? item : 
                   (typeof item === 'object' && 'text' in item ? (item as { text?: string }).text ?? '' : '');
-
+                
                 if (!itemText) continue;
-
+                
                 // Check if this item contains "[]" or "[] "
                 const bracketIndex = itemText.indexOf('[]');
                 if (bracketIndex !== -1) {
+                  foundBracketStart = true;
+                  foundBracketEnd = true;
+                  
                   // Check if there's a space after "[]"
                   const afterBracket = itemText.substring(bracketIndex + 2);
                   if (afterBracket.startsWith(' ') || afterBracket.startsWith('\u00A0')) {
+                    foundSpaceAfterBracket = true;
                     const afterSpace = afterBracket.substring(1);
-
+                    
                     if (afterSpace) {
                       // There's content in this same item after "[] "
                       if (typeof item === 'string') {
@@ -502,31 +507,31 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                   }
                 }
               }
-
+              
               // If we couldn't parse it from structure, use the regex match as fallback
               if (remainingContent.length === 0 && checkboxMatch[1]) {
                 // Create content from the remaining text - BlockNote format
-                remainingContent = blockContent.filter((item) => {
+                remainingContent = blockContent.filter((item, index) => {
                   // Skip items that are part of "[]"
-                  const itemText = typeof item === 'string' ? item :
+                  const itemText = typeof item === 'string' ? item : 
                     (typeof item === 'object' && 'text' in item ? (item as { text?: string }).text ?? '' : '');
                   return itemText && !itemText.includes('[]');
                 });
-
+                
                 // If still empty, create a simple text content
                 if (remainingContent.length === 0) {
                   remainingContent = [{ text: checkboxMatch[1] }];
                 }
               }
             }
-
+            
             // Update the block to be a checkListItem with preserved content
             editor.updateBlock(currentBlock.id, {
               type: 'checkListItem',
               props: { checked: false },
               content: remainingContent
             });
-
+            
             // Position cursor at the end of the checkbox content (or start if empty)
             setTimeout(() => {
               try {
@@ -540,7 +545,7 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                 editor.setTextCursorPosition(currentBlock.id, "start");
               }
             }, 0);
-
+            
           } catch (error) {
             console.error('Error manually creating checkbox:', error);
           }
@@ -604,6 +609,15 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
       if (clickX >= rect.width - 60 && clickX <= rect.width - 20 && clickY >= 8 && clickY <= 36) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        // Store current scroll position to prevent page jump
+        const scrollY = window.scrollY;
+        const scrollX = window.scrollX;
+        
+        // Prevent any focus changes that might cause scrolling
+        const activeElement = document.activeElement as HTMLElement;
+        activeElement?.blur?.();
         
         // Get the code content
         const preElement = codeBlock.querySelector('pre');
@@ -614,21 +628,56 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
           try {
             await navigator.clipboard.writeText(codeContent);
             
+            // Restore scroll position immediately after copy
+            window.scrollTo({
+              left: scrollX,
+              top: scrollY,
+              behavior: 'instant'
+            });
+            
             // Show success toast
             showToast("Code copied to clipboard!", "success");
+            
+            // Ensure scroll position is maintained (sometimes needed after async operations)
+            requestAnimationFrame(() => {
+              window.scrollTo({
+                left: scrollX,
+                top: scrollY,
+                behavior: 'instant'
+              });
+            });
+            
+            // One more check after a short delay to ensure position is maintained
+            setTimeout(() => {
+              if (window.scrollY !== scrollY || window.scrollX !== scrollX) {
+                window.scrollTo({
+                  left: scrollX,
+                  top: scrollY,
+                  behavior: 'instant'
+                });
+              }
+            }, 10);
           } catch (err) {
             console.error('Failed to copy code:', err);
             showToast("Failed to copy code", "error");
+            // Restore scroll position even on error
+            window.scrollTo({
+              left: scrollX,
+              top: scrollY,
+              behavior: 'instant'
+            });
           }
         })();
+        
+        return false;
       }
     };
 
     // Add event listener to the document to catch all clicks
-    document.addEventListener('click', handleCopyClick);
+    document.addEventListener('click', handleCopyClick, true); // Use capture phase
     
     return () => {
-      document.removeEventListener('click', handleCopyClick);
+      document.removeEventListener('click', handleCopyClick, true);
     };
   }, [showToast]);
 
@@ -745,7 +794,6 @@ function BlockNoteEditorInner({
 }) {
   const router = useRouter();
   const utils = api.useUtils();
-  const isMobile = useIsMobile();
   const [title, setTitle] = useState(initialTitle);
   const [coverImage, setCoverImage] = useState(initialCoverImage);
   const [bannerImage, setBannerImage] = useState(initialBannerImage);
