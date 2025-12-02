@@ -423,14 +423,18 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
         const blockContent = currentBlock.content;
         if (!Array.isArray(blockContent) || blockContent.length === 0) return;
         
-        // Check if the text ends with "[]"
+        // Get the full text content
         const textContent = blockContent.map(item => {
           if (typeof item === 'string') return item;
           if (typeof item === 'object' && 'text' in item) return (item as { text?: string }).text ?? '';
           return '';
         }).join('');
         
-        if (textContent === '[]') {
+        // Check if the text starts with "[]" or "[] " (with or without space)
+        const checkboxMatch = textContent.match(/^\[\]\s*(.*)$/);
+        const isExactCheckbox = textContent === '[]';
+        
+        if (checkboxMatch || isExactCheckbox) {
           // Prevent ALL default behaviors more aggressively
           keyboardEvent.preventDefault();
           keyboardEvent.stopPropagation();
@@ -440,15 +444,106 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
           try {
             if (!editor?.isEditable) return;
             
-            // Update the block to be a checkListItem
+            // Extract content after "[]" or "[] " from the original blockContent
+            let remainingContent: any[] = [];
+            
+            if (checkboxMatch && checkboxMatch[1] && checkboxMatch[1].trim()) {
+              // There's content after "[] ", preserve it by extracting from blockContent
+              // We need to find where "[]" ends in the content array and keep everything after
+              let foundBracketStart = false;
+              let foundBracketEnd = false;
+              let foundSpaceAfterBracket = false;
+              let remainingContentStartIndex = -1;
+              
+              // Iterate through blockContent to find where "[]" or "[] " ends
+              for (let i = 0; i < blockContent.length; i++) {
+                const item = blockContent[i];
+                const itemText = typeof item === 'string' ? item : 
+                  (typeof item === 'object' && 'text' in item ? (item as { text?: string }).text ?? '' : '');
+                
+                if (!itemText) continue;
+                
+                // Check if this item contains "[]" or "[] "
+                const bracketIndex = itemText.indexOf('[]');
+                if (bracketIndex !== -1) {
+                  foundBracketStart = true;
+                  foundBracketEnd = true;
+                  
+                  // Check if there's a space after "[]"
+                  const afterBracket = itemText.substring(bracketIndex + 2);
+                  if (afterBracket.startsWith(' ') || afterBracket.startsWith('\u00A0')) {
+                    foundSpaceAfterBracket = true;
+                    const afterSpace = afterBracket.substring(1);
+                    
+                    if (afterSpace) {
+                      // There's content in this same item after "[] "
+                      if (typeof item === 'string') {
+                        remainingContent.push(afterSpace);
+                      } else {
+                        remainingContent.push({ ...item, text: afterSpace });
+                      }
+                    }
+                    // Add all remaining items
+                    remainingContent.push(...blockContent.slice(i + 1));
+                    remainingContentStartIndex = i + 1;
+                    break;
+                  } else if (afterBracket) {
+                    // There's content after "[]" but no space
+                    if (typeof item === 'string') {
+                      remainingContent.push(afterBracket);
+                    } else {
+                      remainingContent.push({ ...item, text: afterBracket });
+                    }
+                    // Add all remaining items
+                    remainingContent.push(...blockContent.slice(i + 1));
+                    remainingContentStartIndex = i + 1;
+                    break;
+                  } else {
+                    // "[]" is at the end of this item, content starts in next items
+                    remainingContent.push(...blockContent.slice(i + 1));
+                    remainingContentStartIndex = i + 1;
+                    break;
+                  }
+                }
+              }
+              
+              // If we couldn't parse it from structure, use the regex match as fallback
+              if (remainingContent.length === 0 && checkboxMatch[1]) {
+                // Create content from the remaining text - BlockNote format
+                remainingContent = blockContent.filter((item, index) => {
+                  // Skip items that are part of "[]"
+                  const itemText = typeof item === 'string' ? item : 
+                    (typeof item === 'object' && 'text' in item ? (item as { text?: string }).text ?? '' : '');
+                  return itemText && !itemText.includes('[]');
+                });
+                
+                // If still empty, create a simple text content
+                if (remainingContent.length === 0) {
+                  remainingContent = [{ text: checkboxMatch[1] }];
+                }
+              }
+            }
+            
+            // Update the block to be a checkListItem with preserved content
             editor.updateBlock(currentBlock.id, {
               type: 'checkListItem',
               props: { checked: false },
-              content: []
+              content: remainingContent
             });
             
-            // Position cursor at the end of the checkbox immediately
-            editor.setTextCursorPosition(currentBlock.id, "end");
+            // Position cursor at the end of the checkbox content (or start if empty)
+            setTimeout(() => {
+              try {
+                if (remainingContent.length > 0) {
+                  editor.setTextCursorPosition(currentBlock.id, "end");
+                } else {
+                  editor.setTextCursorPosition(currentBlock.id, "start");
+                }
+              } catch (error) {
+                // Fallback: just set to start to keep cursor in same block
+                editor.setTextCursorPosition(currentBlock.id, "start");
+              }
+            }, 0);
             
           } catch (error) {
             console.error('Error manually creating checkbox:', error);
