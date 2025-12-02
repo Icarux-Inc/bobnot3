@@ -62,11 +62,46 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
     }
   }, [pageId, onStatusChange]);
 
+  // Track toggle list content to prevent it from moving when Enter is pressed
+  const toggleListContentRef = useRef<{ blockId: string; content: any } | null>(null);
+
   // Handle editor changes
   useEffect(() => {
     if (!editor) return;
 
     const handleChange = () => {
+      // Check if we need to fix toggle list content movement
+      if (toggleListContentRef.current) {
+        const { blockId, content: originalContent } = toggleListContentRef.current;
+        const currentBlock = editor.getBlock(blockId);
+        
+        if (currentBlock && currentBlock.type === 'toggleListItem') {
+          const currentContentStr = JSON.stringify(currentBlock.content || []);
+          const originalContentStr = JSON.stringify(originalContent);
+          
+          // If content was moved (original block is now empty), restore it
+          if (currentContentStr !== originalContentStr && 
+              (currentContentStr === '[]' || currentContentStr === 'null' || currentContentStr === '""')) {
+            setTimeout(() => {
+              try {
+                editor.updateBlock(blockId, {
+                  content: originalContent,
+                });
+                toggleListContentRef.current = null;
+              } catch (error) {
+                console.error('Error restoring toggle list content:', error);
+                toggleListContentRef.current = null;
+              }
+            }, 0);
+          } else {
+            // Content is still there, clear the ref
+            toggleListContentRef.current = null;
+          }
+        } else {
+          toggleListContentRef.current = null;
+        }
+      }
+      
       onStatusChange("unsaved");
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -85,6 +120,150 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
       }
     };
   }, [editor, saveToDatabase, onStatusChange]);
+
+  // Fix toggle list Enter key behavior - prevent content from moving to new list item
+  useEffect(() => {
+    if (!editor || !isReady) return;
+
+    const handleEnterKey = async (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent;
+      
+      if (keyboardEvent.key !== 'Enter' || keyboardEvent.shiftKey) return;
+      
+      try {
+        if (!editor?.isEditable) return;
+
+        const textCursorPosition = editor.getTextCursorPosition();
+        const currentBlock = textCursorPosition.block;
+        
+        // Check if we're in a toggle list
+        if (currentBlock?.type === 'toggleListItem') {
+          // Get the current block content before Enter is processed
+          const blockBeforeEnter = editor.getBlock(currentBlock.id);
+          if (!blockBeforeEnter) return;
+          
+          // Check if block has content by converting to string
+          const contentStr = JSON.stringify(blockBeforeEnter.content);
+          const hasContent = contentStr && contentStr !== '[]' && contentStr !== 'null' && contentStr !== '""';
+          
+          if (hasContent) {
+            // Prevent BlockNote's default Enter behavior completely
+            keyboardEvent.preventDefault();
+            keyboardEvent.stopPropagation();
+            keyboardEvent.stopImmediatePropagation();
+            
+            // Store the original content
+            const originalContent = JSON.parse(JSON.stringify(blockBeforeEnter.content));
+            
+            // Store in ref for onChange handler as backup
+            toggleListContentRef.current = {
+              blockId: currentBlock.id,
+              content: originalContent,
+            };
+            
+            // Manually insert a new empty toggle list item
+            try {
+              await editor.insertBlocks(
+                [{
+                  type: 'toggleListItem',
+                  content: [],
+                }],
+                currentBlock.id,
+                'after'
+              );
+              
+              // Small delay to ensure the insert completed
+              await new Promise(resolve => setTimeout(resolve, 10));
+              
+              // Verify original block still has content, restore if needed
+              const blockAfterInsert = editor.getBlock(currentBlock.id);
+              if (blockAfterInsert) {
+                const contentAfterStr = JSON.stringify(blockAfterInsert.content || []);
+                const originalContentStr = JSON.stringify(originalContent);
+                
+                if (contentAfterStr !== originalContentStr && 
+                    (contentAfterStr === '[]' || contentAfterStr === 'null' || contentAfterStr === '""')) {
+                  // Content was moved, restore it
+                  editor.updateBlock(currentBlock.id, {
+                    content: originalContent,
+                  });
+                }
+              }
+              
+              // Find and move cursor to the new toggle list item
+              setTimeout(() => {
+                try {
+                  const document = editor.document;
+                  const findNextToggle = (blocks: Block[], targetId: string): Block | null => {
+                    for (let i = 0; i < blocks.length; i++) {
+                      const block = blocks[i];
+                      if (!block) continue;
+                      
+                      if (block.id === targetId) {
+                        // Found the target, return the next sibling if it's a toggle list
+                        if (i + 1 < blocks.length) {
+                          const nextBlock = blocks[i + 1];
+                          if (nextBlock && nextBlock.type === 'toggleListItem') {
+                            return nextBlock;
+                          }
+                        }
+                        return null;
+                      }
+                      if (block.children) {
+                        const found = findNextToggle(block.children, targetId);
+                        if (found) return found;
+                      }
+                    }
+                    return null;
+                  };
+                  
+                  const nextToggle = findNextToggle(document, currentBlock.id);
+                  if (nextToggle) {
+                    editor.setTextCursorPosition(nextToggle.id, 'start');
+                  }
+                  toggleListContentRef.current = null;
+                } catch (error) {
+                  console.error('Error moving cursor:', error);
+                  toggleListContentRef.current = null;
+                }
+              }, 20);
+              
+            } catch (error) {
+              console.error('Error inserting new toggle list item:', error);
+              toggleListContentRef.current = null;
+            }
+            
+            return false;
+          }
+        }
+      } catch (error) {
+        console.error('Error handling toggle list Enter key:', error);
+      }
+    };
+
+    // Add event listener with highest priority to catch Enter before BlockNote processes it
+    const editorElement = document.querySelector('[data-id="blocknote-editor"]');
+    const proseMirrorElement = editorElement?.querySelector('.ProseMirror');
+    
+    // Add to multiple elements to ensure we catch it
+    if (proseMirrorElement) {
+      proseMirrorElement.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
+    }
+    if (editorElement) {
+      editorElement.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
+    }
+    document.addEventListener('keydown', handleEnterKey, { capture: true, passive: false });
+    
+    return () => {
+      if (proseMirrorElement) {
+        proseMirrorElement.removeEventListener('keydown', handleEnterKey, { capture: true });
+      }
+      if (editorElement) {
+        editorElement.removeEventListener('keydown', handleEnterKey, { capture: true });
+      }
+      document.removeEventListener('keydown', handleEnterKey, { capture: true });
+    };
+  }, [editor, isReady]);
 
   // Enable bulk indentation for multiple selected bullet points
   useEffect(() => {
