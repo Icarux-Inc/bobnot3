@@ -20,7 +20,7 @@ export async function POST(req: Request) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        const { filename, contentType } = await req.json();
+        const { filename, contentType } = (await req.json()) as { filename: string; contentType: string };
 
         const uniqueFilename = `${session.user.id}/${Date.now()}-${filename}`;
 

@@ -18,7 +18,7 @@ export async function GET(
     { params }: { params: Promise<{ key: string }> }
 ) {
     try {
-        const session = await auth();
+        await auth();
         // Optional: Check if user has access to the workspace/page this image belongs to.
         // For now, we'll allow authenticated users to view images if they have the link, 
         // or we could make it public if we want public pages to work for everyone.

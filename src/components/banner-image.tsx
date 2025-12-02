@@ -36,7 +36,7 @@ export function BannerImage({ url, editable, onUpdate, className }: BannerImageP
 
       if (!res.ok) throw new Error("Failed to get upload URL");
 
-      const { uploadUrl, fileKey } = await res.json();
+      const { uploadUrl, fileKey } = (await res.json()) as { uploadUrl: string; fileKey: string };
 
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
@@ -60,7 +60,7 @@ export function BannerImage({ url, editable, onUpdate, className }: BannerImageP
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleUpload(file);
+    if (file) void handleUpload(file);
   };
 
   const removeBanner = () => {

@@ -454,7 +454,7 @@ function EditorSkeleton() {
 }
 
 import { Button } from "@/components/ui/button";
-import { Pencil, Download, Image } from "lucide-react";
+import { Pencil, Download, Image as ImageIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -572,11 +572,11 @@ function BlockNoteEditorInner({
     <div className="max-w-5xl mx-auto space-y-8 relative overflow-visible pb-20">
       {/* Banner Image - Full width at top, behind other content */}
       {bannerImage && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-screen h-55 z-0">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-screen h-96 z-0">
           <BannerImage
             url={bannerImage}
             editable={false}
-            onUpdate={() => {}}
+            onUpdate={() => { /* read-only */ }}
           />
         </div>
       )}
@@ -589,13 +589,13 @@ function BlockNoteEditorInner({
       </div>
 
       {/* New Header Layout */}
-      <div className={`flex flex-col md:flex-row gap-6 items-end px-[54px] relative z-10 ${bannerImage ? 'pt-24.5' : 'pt-12'}`}>
+      <div className={`flex flex-col md:flex-row gap-6 items-end px-[54px] relative z-10 ${bannerImage ? 'pt-48' : 'pt-12'}`}>
         {/* Cover Image - Smaller size (w-40 = 10rem) */}
         <div className="w-40 h-40 flex-shrink-0">
-            <CoverImage 
-              url={coverImage} 
+            <CoverImage
+              url={coverImage}
               editable={false} // Read-only in main view
-              onUpdate={() => {}} 
+              onUpdate={() => { /* read-only */ }}
             />
         </div>
 
@@ -654,7 +654,7 @@ function BlockNoteEditorInner({
              <Dialog open={isBannerDialogOpen} onOpenChange={setIsBannerDialogOpen}>
                <DialogTrigger asChild>
                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                   <Image className="h-6 w-6" />
+                   <ImageIcon className="h-6 w-6" />
                  </Button>
                </DialogTrigger>
                <DialogContent>

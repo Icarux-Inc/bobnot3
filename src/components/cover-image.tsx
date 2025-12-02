@@ -37,7 +37,7 @@ export function CoverImage({ url, editable, onUpdate, className }: CoverImagePro
 
       if (!res.ok) throw new Error("Failed to get upload URL");
 
-      const { uploadUrl, fileKey } = await res.json();
+      const { uploadUrl, fileKey } = (await res.json()) as { uploadUrl: string; fileKey: string };
 
       // 2. Upload to R2
       const uploadRes = await fetch(uploadUrl, {
@@ -78,7 +78,7 @@ export function CoverImage({ url, editable, onUpdate, className }: CoverImagePro
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleUpload(file);
+    if (file) void handleUpload(file);
   };
 
   const removeCover = () => {

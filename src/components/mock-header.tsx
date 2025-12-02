@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Share, Star, MoreHorizontal, Play } from "lucide-react";
+import { Share, MoreHorizontal, Play } from "lucide-react";
 
 export function MockHeader() {
   return (
