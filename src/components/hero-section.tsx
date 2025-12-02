@@ -28,7 +28,7 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 py-20 md:py-32 lg:py-40 xl:py-48 text-center relative overflow-hidden">
+    <section className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 pt-40 md:pt-48 lg:pt-56 xl:pt-64 pb-20 md:pb-32 lg:pb-40 xl:pb-48 text-center relative overflow-hidden">
       {/* Threads Background */}
       <Threads
         color={[2.5, 2.5, 2.5]}
