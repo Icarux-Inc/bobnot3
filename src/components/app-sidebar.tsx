@@ -37,6 +37,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -98,10 +99,18 @@ export function AppSidebar({
   sharedPages?: SharedPage[];
 }) {
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const [items, setItems] = useState<TreeItem[]>(initialItems);
   const [activeId, setActiveId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const edgeScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close sidebar on mobile when a page is clicked
+  const handlePageClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
   
   useEffect(() => {
     setItems(initialItems);
@@ -601,11 +610,12 @@ export function AppSidebar({
                                     className="h-auto py-2.5 items-start"
                                     tooltip={`${page.title} • ${page.workspaceName}`}
                                 >
-                                    <Link 
-                                        href={`/dashboard/${page.workspaceId}/${page.id}`} 
-                                        className="flex items-center gap-2"
-                                        onMouseEnter={() => prefetchPage(page.id)}
-                                    >
+                                <Link 
+                                    href={`/dashboard/${page.workspaceId}/${page.id}`} 
+                                    className="flex items-center gap-2"
+                                    onMouseEnter={() => prefetchPage(page.id)}
+                                    onClick={handlePageClick}
+                                >
                                         <FileText className="h-4 w-4 shrink-0 mt-0.5" />
                                         <div className="flex flex-col gap-0.5 overflow-hidden">
                                             <span className="truncate font-medium leading-none">{page.title}</span>
@@ -715,12 +725,20 @@ function TreeItemRenderer({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
   const isActive = pathname === `/dashboard/${workspaceId}/${item.id}`;
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(item.name);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [pointerStartPos, setPointerStartPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Close sidebar on mobile when a page is clicked
+  const handlePageClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
 
   const renameFolder = api.workspace.renameFolder.useMutation({
     onSuccess: () => {
@@ -1028,6 +1046,7 @@ function TreeItemRenderer({
                     href={`/dashboard/${workspaceId}/${item.id}`} 
                     className={`flex items-center gap-2 w-full ${isActive ? '' : 'text-muted-foreground/70 hover:text-foreground transition-colors'}`}
                     onMouseEnter={() => prefetchPage(item.id)}
+                    onClick={handlePageClick}
                 >
                     <FileText className="flex-shrink-0" />
                     <span className="truncate transition-all duration-200 group-hover/row:pr-8">{item.name}</span>
