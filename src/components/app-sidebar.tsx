@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -13,7 +13,9 @@ import {
   type DropAnimation,
   type DragStartEvent,
   type DragEndEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -98,6 +100,8 @@ export function AppSidebar({
   const router = useRouter();
   const [items, setItems] = useState<TreeItem[]>(initialItems);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const edgeScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     setItems(initialItems);
@@ -214,15 +218,135 @@ export function AppSidebar({
   const handleDragStart = (event: DragStartEvent) => {
     const itemId = event.active.id as string;
     setActiveId(itemId);
+    
     // Trigger haptic feedback if available
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(50);
     }
   };
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    if (!activeId) return;
+    
+    // Find the scrollable container
+    // On mobile: native scrolling, so find the element with overflow-y-auto
+    // On desktop: Lenis container (but during drag we can use native scroll)
+    const sidebarElement = document.querySelector('.sidebar-group-content')?.closest('[class*="overflow"]') as HTMLElement;
+    const container = sidebarElement || scrollContainerRef.current;
+    if (!container) return;
+    
+    // Get the actual scrollable element (the one with scrollTop)
+    // For native scrolling, it's the container itself
+    // For Lenis, we need to find the actual scrollable element
+    let scrollElement: HTMLElement = container;
+    if (container.scrollTop === undefined || container.scrollTop === null) {
+      // Try to find a child element that's scrollable
+      const scrollableChild = container.querySelector('[style*="overflow"]') as HTMLElement;
+      if (scrollableChild && scrollableChild.scrollTop !== undefined) {
+        scrollElement = scrollableChild;
+      }
+    }
+    
+    const rect = container.getBoundingClientRect();
+    
+    // Get pointer position from the drag event
+    // Try to get from activatorEvent first, then from active rect
+    let pointerY: number | null = null;
+    
+    if (event.activatorEvent && 'clientY' in event.activatorEvent) {
+      pointerY = event.activatorEvent.clientY;
+    } else if (event.active.rect.current.translated) {
+      // Use the center of the dragged item as fallback
+      pointerY = event.active.rect.current.translated.top + event.active.rect.current.translated.height / 2;
+    }
+    
+    if (pointerY === null) return;
+    
+    const edgeThreshold = 50;
+    
+    // Clear existing interval
+    if (edgeScrollIntervalRef.current) {
+      clearInterval(edgeScrollIntervalRef.current);
+      edgeScrollIntervalRef.current = null;
+    }
+    
+    // Check if near top edge
+    if (pointerY < rect.top + edgeThreshold) {
+      const distance = pointerY - rect.top;
+      const speed = Math.max(2, Math.floor((edgeThreshold - distance) / 5));
+      
+      edgeScrollIntervalRef.current = setInterval(() => {
+        const sidebarElement = document.querySelector('.sidebar-group-content')?.closest('[class*="overflow"]') as HTMLElement;
+        const container = sidebarElement || scrollContainerRef.current;
+        if (!container) return;
+        
+        // Get the actual scrollable element
+        let scrollElement: HTMLElement = container;
+        if (container.scrollTop === undefined || container.scrollTop === null) {
+          const scrollableChild = container.querySelector('[style*="overflow"]') as HTMLElement;
+          if (scrollableChild && scrollableChild.scrollTop !== undefined) {
+            scrollElement = scrollableChild;
+          } else {
+            return; // Can't find scrollable element
+          }
+        }
+        
+        const currentScroll = scrollElement.scrollTop || 0;
+        if (currentScroll <= 0) {
+          if (edgeScrollIntervalRef.current) {
+            clearInterval(edgeScrollIntervalRef.current);
+            edgeScrollIntervalRef.current = null;
+          }
+          return;
+        }
+        scrollElement.scrollTop = Math.max(0, currentScroll - speed);
+      }, 16);
+    }
+    // Check if near bottom edge
+    else if (pointerY > rect.bottom - edgeThreshold) {
+      const distance = rect.bottom - pointerY;
+      const speed = Math.max(2, Math.floor((edgeThreshold - distance) / 5));
+      
+      edgeScrollIntervalRef.current = setInterval(() => {
+        const sidebarElement = document.querySelector('.sidebar-group-content')?.closest('[class*="overflow"]') as HTMLElement;
+        const container = sidebarElement || scrollContainerRef.current;
+        if (!container) return;
+        
+        // Get the actual scrollable element
+        let scrollElement: HTMLElement = container;
+        if (container.scrollTop === undefined || container.scrollTop === null) {
+          const scrollableChild = container.querySelector('[style*="overflow"]') as HTMLElement;
+          if (scrollableChild && scrollableChild.scrollTop !== undefined) {
+            scrollElement = scrollableChild;
+          } else {
+            return; // Can't find scrollable element
+          }
+        }
+        
+        const maxScroll = scrollElement.scrollHeight - scrollElement.clientHeight;
+        const currentScroll = scrollElement.scrollTop || 0;
+        if (currentScroll >= maxScroll) {
+          if (edgeScrollIntervalRef.current) {
+            clearInterval(edgeScrollIntervalRef.current);
+            edgeScrollIntervalRef.current = null;
+          }
+          return;
+        }
+        scrollElement.scrollTop = Math.min(maxScroll, currentScroll + speed);
+      }, 16);
+    }
+  }, [activeId]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    
+    // Clean up edge scrolling
+    if (edgeScrollIntervalRef.current) {
+      clearInterval(edgeScrollIntervalRef.current);
+      edgeScrollIntervalRef.current = null;
+    }
+    
     // Clear reorder mode for all items after drag ends
     setReorderModeItems(new Set());
 
@@ -391,10 +515,17 @@ export function AppSidebar({
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
                 onDragCancel={() => {
                   setActiveId(null);
                   setReorderModeItems(new Set());
+                  
+                  // Clean up edge scrolling
+                  if (edgeScrollIntervalRef.current) {
+                    clearInterval(edgeScrollIntervalRef.current);
+                    edgeScrollIntervalRef.current = null;
+                  }
                 }}
             >
                 <SidebarMenu className="ml-2">
@@ -424,7 +555,10 @@ export function AppSidebar({
                         ))}
                     </SortableContext>
                 </SidebarMenu>
-                <DragOverlay dropAnimation={dropAnimationConfig}>
+                <DragOverlay 
+                  dropAnimation={dropAnimationConfig}
+                  modifiers={[snapCenterToCursor]}
+                >
                     {activeItem ? (
                         <div className="opacity-80 bg-sidebar-accent rounded-md p-2">
                             <div className="flex items-center gap-2">

@@ -37,6 +37,17 @@ export function SmoothScrollContainer({
     const container = containerRef.current;
     const content = contentRef.current;
 
+    // On mobile, use native scrolling (no Lenis) for better edge scrolling compatibility
+    if (isMobile) {
+      // Just ensure native scrolling works - no Lenis setup needed
+      container.style.overflow = '';
+      container.style.position = '';
+      content.style.width = '100%';
+      content.style.minHeight = '100%';
+      return;
+    }
+
+    // Desktop: Use Lenis for smooth scrolling
     // Store original styles to restore on cleanup
     const originalOverflow = container.style.overflow;
     const originalPosition = container.style.position;
@@ -50,20 +61,15 @@ export function SmoothScrollContainer({
     // Ensure content has proper height calculation for Lenis
     content.style.minHeight = '100%';
 
-    // Configure Lenis with mobile-optimized settings
-    // On mobile, use faster duration and higher touch multiplier for better responsiveness
-    const mobileDuration = isMobile ? 1.0 : duration;
-    const mobileTouchMultiplier = isMobile ? 2.0 : touchMultiplier;
-
     const lenis = new Lenis({
-      duration: mobileDuration,
+      duration,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
       smoothWheel: true,
-      syncTouch: true, // Enable smooth touch scrolling on mobile
+      syncTouch: false, // Not needed on desktop
       wheelMultiplier,
-      touchMultiplier: mobileTouchMultiplier,
+      touchMultiplier,
       infinite: false,
       wrapper: container,
       content: content,
