@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -13,7 +13,9 @@ import {
   type DropAnimation,
   type DragStartEvent,
   type DragEndEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -35,6 +37,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -96,8 +99,18 @@ export function AppSidebar({
   sharedPages?: SharedPage[];
 }) {
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const [items, setItems] = useState<TreeItem[]>(initialItems);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const edgeScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close sidebar on mobile when a page is clicked
+  const handlePageClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
   
   useEffect(() => {
     setItems(initialItems);
@@ -164,10 +177,14 @@ export function AppSidebar({
     void utils.page.getPage.prefetch({ pageId });
   }, [utils]);
 
+  // Track which items are in reorder mode (long press activated)
+  const [reorderModeItems, setReorderModeItems] = useState<Set<string>>(new Set());
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        delay: 500, // 500ms long press required
+        tolerance: 5, // Allow 5px movement during long press
       },
     }),
     useSensor(KeyboardSensor, {
@@ -208,14 +225,141 @@ export function AppSidebar({
   const activeItem = activeId ? flattenedItems.find((i) => i.id === activeId) : null;
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    const itemId = event.active.id as string;
+    setActiveId(itemId);
+    
+    // Trigger haptic feedback if available
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
   };
 
-
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    if (!activeId) return;
+    
+    // Find the scrollable container
+    // On mobile: native scrolling, so find the element with overflow-y-auto
+    // On desktop: Lenis container (but during drag we can use native scroll)
+    const sidebarElement = document.querySelector('.sidebar-group-content')?.closest('[class*="overflow"]');
+    const container = (sidebarElement as HTMLElement | null) ?? scrollContainerRef.current;
+    if (!container) return;
+    
+    // Get the actual scrollable element (the one with scrollTop)
+    // For native scrolling, it's the container itself
+    // For Lenis, we need to find the actual scrollable element
+    if (container.scrollTop === undefined || container.scrollTop === null) {
+      // Try to find a child element that's scrollable
+      const scrollableChild = container.querySelector('[style*="overflow"]');
+      if (scrollableChild && (scrollableChild as HTMLElement).scrollTop !== undefined) {
+        // Use scrollableChild if found
+      }
+    }
+    
+    const rect = container.getBoundingClientRect();
+    
+    // Get pointer position from the drag event
+    // Try to get from activatorEvent first, then from active rect
+    let pointerY: number | null = null;
+    
+    if (event.activatorEvent && 'clientY' in event.activatorEvent) {
+      const clientY = (event.activatorEvent as { clientY: number }).clientY;
+      if (typeof clientY === 'number') {
+        pointerY = clientY;
+      }
+    } else if (event.active.rect.current.translated) {
+      // Use the center of the dragged item as fallback
+      pointerY = event.active.rect.current.translated.top + event.active.rect.current.translated.height / 2;
+    }
+    
+    if (pointerY === null) return;
+    
+    const edgeThreshold = 50;
+    
+    // Clear existing interval
+    if (edgeScrollIntervalRef.current) {
+      clearInterval(edgeScrollIntervalRef.current);
+      edgeScrollIntervalRef.current = null;
+    }
+    
+    // Check if near top edge
+    if (pointerY < rect.top + edgeThreshold) {
+      const distance = pointerY - rect.top;
+      const speed = Math.max(2, Math.floor((edgeThreshold - distance) / 5));
+      
+      edgeScrollIntervalRef.current = setInterval(() => {
+        const sidebarElement = document.querySelector('.sidebar-group-content')?.closest('[class*="overflow"]');
+        const container = (sidebarElement as HTMLElement | null) ?? scrollContainerRef.current;
+        if (!container) return;
+        
+        // Get the actual scrollable element
+        let scrollElement: HTMLElement = container;
+        if (container.scrollTop === undefined || container.scrollTop === null) {
+          const scrollableChild = container.querySelector('[style*="overflow"]');
+          if (scrollableChild && (scrollableChild as HTMLElement).scrollTop !== undefined) {
+            scrollElement = scrollableChild as HTMLElement;
+          } else {
+            return; // Can't find scrollable element
+          }
+        }
+        
+        const currentScroll = scrollElement.scrollTop ?? 0;
+        if (currentScroll <= 0) {
+          if (edgeScrollIntervalRef.current) {
+            clearInterval(edgeScrollIntervalRef.current);
+            edgeScrollIntervalRef.current = null;
+          }
+          return;
+        }
+        scrollElement.scrollTop = Math.max(0, currentScroll - speed);
+      }, 16);
+    }
+    // Check if near bottom edge
+    else if (pointerY > rect.bottom - edgeThreshold) {
+      const distance = rect.bottom - pointerY;
+      const speed = Math.max(2, Math.floor((edgeThreshold - distance) / 5));
+      
+      edgeScrollIntervalRef.current = setInterval(() => {
+        const sidebarElement = document.querySelector('.sidebar-group-content')?.closest('[class*="overflow"]');
+        const container = (sidebarElement as HTMLElement | null) ?? scrollContainerRef.current;
+        if (!container) return;
+        
+        // Get the actual scrollable element
+        let scrollElement: HTMLElement = container;
+        if (container.scrollTop === undefined || container.scrollTop === null) {
+          const scrollableChild = container.querySelector('[style*="overflow"]');
+          if (scrollableChild && (scrollableChild as HTMLElement).scrollTop !== undefined) {
+            scrollElement = scrollableChild as HTMLElement;
+          } else {
+            return; // Can't find scrollable element
+          }
+        }
+        
+        const maxScroll = scrollElement.scrollHeight - scrollElement.clientHeight;
+        const currentScroll = scrollElement.scrollTop ?? 0;
+        if (currentScroll >= maxScroll) {
+          if (edgeScrollIntervalRef.current) {
+            clearInterval(edgeScrollIntervalRef.current);
+            edgeScrollIntervalRef.current = null;
+          }
+          return;
+        }
+        scrollElement.scrollTop = Math.min(maxScroll, currentScroll + speed);
+      }, 16);
+    }
+  }, [activeId]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    
+    // Clean up edge scrolling
+    if (edgeScrollIntervalRef.current) {
+      clearInterval(edgeScrollIntervalRef.current);
+      edgeScrollIntervalRef.current = null;
+    }
+    
+    // Clear reorder mode for all items after drag ends
+    setReorderModeItems(new Set());
 
     if (!over) return;
 
@@ -348,13 +492,9 @@ export function AppSidebar({
       <SidebarHeader>
         <TeamSwitcher teams={workspacesWithIcons} />
       </SidebarHeader>
-      <SmoothScrollContainer 
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:overflow-hidden"
-        duration={1.0}
-        wheelMultiplier={1.2}
-        touchMultiplier={2.0}
-      >
-        <SidebarGroup>
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Fixed Platform header */}
+        <SidebarGroup className="shrink-0">
           <SidebarGroupLabel className="flex items-center justify-between pr-2">
             <span>Platform</span>
             {isOwner && (
@@ -377,36 +517,82 @@ export function AppSidebar({
             </div>
             )}
           </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-            >
-                <SidebarMenu className="ml-2">
-                    <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-                        {items.map((item) => (
-                            <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} isOwner={isOwner} prefetchPage={prefetchPage} utils={utils} onItemDeleted={(itemId) => setItems(prev => removeItemFromTree(prev, itemId))} />
-                        ))}
-                    </SortableContext>
-                </SidebarMenu>
-                <DragOverlay dropAnimation={dropAnimationConfig}>
-                    {activeItem ? (
-                        <div className="opacity-80 bg-sidebar-accent rounded-md p-2">
-                            <div className="flex items-center gap-2">
-                                {activeItem.type === 'folder' ? <Folder className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                                <span>{activeItem.name}</span>
-                            </div>
-                        </div>
-                    ) : null}
-                </DragOverlay>
-            </DndContext>
-          </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator className="mx-2 my-2 mt-auto" />
-        <SidebarGroup>
+        {/* Scrollable Platform content */}
+        <SmoothScrollContainer 
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:overflow-hidden"
+          duration={1.0}
+          wheelMultiplier={1.2}
+          touchMultiplier={2.0}
+        >
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={() => {
+                    setActiveId(null);
+                    setReorderModeItems(new Set());
+                    
+                    // Clean up edge scrolling
+                    if (edgeScrollIntervalRef.current) {
+                      clearInterval(edgeScrollIntervalRef.current);
+                      edgeScrollIntervalRef.current = null;
+                    }
+                  }}
+              >
+                  <SidebarMenu className="ml-2">
+                      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                          {items.map((item) => (
+                              <TreeItemRenderer 
+                                  key={item.id} 
+                                  item={item} 
+                                  workspaceId={workspaceId} 
+                                  isOwner={isOwner} 
+                                  prefetchPage={prefetchPage} 
+                                  utils={utils} 
+                                  onItemDeleted={(itemId) => setItems(prev => removeItemFromTree(prev, itemId))}
+                                  isInReorderMode={reorderModeItems.has(item.id)}
+                                  onReorderModeChange={(itemId, isActive) => {
+                                      setReorderModeItems(prev => {
+                                          const next = new Set(prev);
+                                          if (isActive) {
+                                              next.add(itemId);
+                                          } else {
+                                              next.delete(itemId);
+                                          }
+                                          return next;
+                                      });
+                                  }}
+                              />
+                          ))}
+                      </SortableContext>
+                  </SidebarMenu>
+                  <DragOverlay 
+                    dropAnimation={dropAnimationConfig}
+                    modifiers={[snapCenterToCursor]}
+                  >
+                      {activeItem ? (
+                          <div className="opacity-80 bg-sidebar-accent rounded-md p-2">
+                              <div className="flex items-center gap-2">
+                                  {activeItem.type === 'folder' ? <Folder className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                                  <span>{activeItem.name}</span>
+                              </div>
+                          </div>
+                      ) : null}
+                  </DragOverlay>
+              </DndContext>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SmoothScrollContainer>
+
+        {/* Fixed Shared with me section at bottom */}
+        <SidebarSeparator className="mx-2 my-2 shrink-0" />
+        <SidebarGroup className="shrink-0">
             <SidebarGroupLabel className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 <span>Shared with me</span>
@@ -426,11 +612,12 @@ export function AppSidebar({
                                     className="h-auto py-2.5 items-start"
                                     tooltip={`${page.title} • ${page.workspaceName}`}
                                 >
-                                    <Link 
-                                        href={`/dashboard/${page.workspaceId}/${page.id}`} 
-                                        className="flex items-center gap-2"
-                                        onMouseEnter={() => prefetchPage(page.id)}
-                                    >
+                                <Link 
+                                    href={`/dashboard/${page.workspaceId}/${page.id}`} 
+                                    className="flex items-center gap-2"
+                                    onMouseEnter={() => prefetchPage(page.id)}
+                                    onClick={handlePageClick}
+                                >
                                         <FileText className="h-4 w-4 shrink-0 mt-0.5" />
                                         <div className="flex flex-col gap-0.5 overflow-hidden">
                                             <span className="truncate font-medium leading-none">{page.title}</span>
@@ -446,7 +633,7 @@ export function AppSidebar({
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>
-      </SmoothScrollContainer>
+      </div>
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>
@@ -526,6 +713,8 @@ function TreeItemRenderer({
   prefetchPage,
   utils,
   onItemDeleted,
+  isInReorderMode,
+  onReorderModeChange,
 }: {
   item: TreeItem;
   workspaceId: string;
@@ -533,13 +722,25 @@ function TreeItemRenderer({
   prefetchPage: (pageId: string) => void;
   utils: ReturnType<typeof api.useUtils>;
   onItemDeleted?: (itemId: string) => void;
+  isInReorderMode?: boolean;
+  onReorderModeChange?: (itemId: string, isActive: boolean) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
   const isActive = pathname === `/dashboard/${workspaceId}/${item.id}`;
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(item.name);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [pointerStartPos, setPointerStartPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Close sidebar on mobile when a page is clicked
+  const handlePageClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
 
   const renameFolder = api.workspace.renameFolder.useMutation({
     onSuccess: () => {
@@ -598,6 +799,76 @@ function TreeItemRenderer({
       }
   };
 
+  // Long press handlers for iOS-style reorder mode
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (!isOwner) return;
+    
+    // Store initial pointer position
+    setPointerStartPos({ x: e.clientX, y: e.clientY });
+    
+    // Only start long press timer if not already in reorder mode
+    if (!isInReorderMode) {
+      const timer = setTimeout(() => {
+        onReorderModeChange?.(item.id, true);
+        // Haptic feedback when reorder mode activates
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([50, 30, 50]);
+        }
+      }, 500); // 500ms long press
+      setLongPressTimer(timer);
+    }
+  }, [isOwner, isInReorderMode, item.id, onReorderModeChange]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isOwner || !pointerStartPos) return;
+    
+    // Calculate distance moved
+    const deltaX = Math.abs(e.clientX - pointerStartPos.x);
+    const deltaY = Math.abs(e.clientY - pointerStartPos.y);
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // If user moved more than 10px, cancel long press (they're scrolling)
+    if (distance > 10) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+      if (isInReorderMode) {
+        onReorderModeChange?.(item.id, false);
+      }
+      setPointerStartPos(null);
+    }
+  }, [isOwner, pointerStartPos, longPressTimer, isInReorderMode, item.id, onReorderModeChange]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setPointerStartPos(null);
+  }, [longPressTimer]);
+
+  const handlePointerCancel = useCallback(() => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    // Exit reorder mode if user releases without dragging
+    if (isInReorderMode) {
+      onReorderModeChange?.(item.id, false);
+    }
+    setPointerStartPos(null);
+  }, [longPressTimer, isInReorderMode, item.id, onReorderModeChange]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
   const {
     attributes,
     listeners,
@@ -605,7 +876,32 @@ function TreeItemRenderer({
     transform,
     transition,
     isDragging
-  } = useSortable({ id: item.id, data: item });
+  } = useSortable({ 
+    id: item.id, 
+    data: item,
+    disabled: !isOwner, // Only disable if user is not owner
+  });
+
+  // Merge long press handlers with drag listeners
+  const enhancedListeners = isOwner ? {
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent) => {
+      handlePointerDown(e);
+      listeners?.onPointerDown?.(e);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      handlePointerMove(e);
+      listeners?.onPointerMove?.(e);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      handlePointerUp();
+      listeners?.onPointerUp?.(e);
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      handlePointerCancel();
+      listeners?.onPointerCancel?.(e);
+    },
+  } : {};
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -615,7 +911,16 @@ function TreeItemRenderer({
 
   if (item.type === "folder") {
     return (
-      <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
+      <div 
+        ref={setNodeRef} 
+        style={style} 
+        {...attributes} 
+        {...(isOwner ? enhancedListeners : {})} 
+        className={cn(
+          "group/item",
+          isInReorderMode && "animate-shake"
+        )}
+      >
         <Collapsible defaultOpen className="group/collapsible">
             <SidebarMenuItem>
               <div className="flex items-center w-full group/folder-row relative">
@@ -693,6 +998,8 @@ function TreeItemRenderer({
                             prefetchPage={prefetchPage}
                             utils={utils}
                             onItemDeleted={onItemDeleted}
+                            isInReorderMode={isInReorderMode}
+                            onReorderModeChange={onReorderModeChange}
                             />
                         ))}
                     </SortableContext>
@@ -725,13 +1032,23 @@ function TreeItemRenderer({
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...(isOwner ? enhancedListeners : {})} 
+      className={cn(
+        "group/item",
+        isInReorderMode && "animate-shake"
+      )}
+    >
         <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive} tooltip={item.name} className="cursor-grab active:cursor-grabbing group/row relative overflow-hidden">
                 <Link 
                     href={`/dashboard/${workspaceId}/${item.id}`} 
                     className={`flex items-center gap-2 w-full ${isActive ? '' : 'text-muted-foreground/70 hover:text-foreground transition-colors'}`}
                     onMouseEnter={() => prefetchPage(item.id)}
+                    onClick={handlePageClick}
                 >
                     <FileText className="flex-shrink-0" />
                     <span className="truncate transition-all duration-200 group-hover/row:pr-8">{item.name}</span>
