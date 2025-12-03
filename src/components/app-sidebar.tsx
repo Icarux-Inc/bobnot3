@@ -164,10 +164,14 @@ export function AppSidebar({
     void utils.page.getPage.prefetch({ pageId });
   }, [utils]);
 
+  // Track which items are in reorder mode (long press activated)
+  const [reorderModeItems, setReorderModeItems] = useState<Set<string>>(new Set());
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        delay: 500, // 500ms long press required
+        tolerance: 5, // Allow 5px movement during long press
       },
     }),
     useSensor(KeyboardSensor, {
@@ -208,14 +212,19 @@ export function AppSidebar({
   const activeItem = activeId ? flattenedItems.find((i) => i.id === activeId) : null;
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    const itemId = event.active.id as string;
+    setActiveId(itemId);
+    // Trigger haptic feedback if available
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
   };
-
-
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    // Clear reorder mode for all items after drag ends
+    setReorderModeItems(new Set());
 
     if (!over) return;
 
@@ -383,11 +392,35 @@ export function AppSidebar({
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
+                onDragCancel={() => {
+                  setActiveId(null);
+                  setReorderModeItems(new Set());
+                }}
             >
                 <SidebarMenu className="ml-2">
                     <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                         {items.map((item) => (
-                            <TreeItemRenderer key={item.id} item={item} workspaceId={workspaceId} isOwner={isOwner} prefetchPage={prefetchPage} utils={utils} onItemDeleted={(itemId) => setItems(prev => removeItemFromTree(prev, itemId))} />
+                            <TreeItemRenderer 
+                                key={item.id} 
+                                item={item} 
+                                workspaceId={workspaceId} 
+                                isOwner={isOwner} 
+                                prefetchPage={prefetchPage} 
+                                utils={utils} 
+                                onItemDeleted={(itemId) => setItems(prev => removeItemFromTree(prev, itemId))}
+                                isInReorderMode={reorderModeItems.has(item.id)}
+                                onReorderModeChange={(itemId, isActive) => {
+                                    setReorderModeItems(prev => {
+                                        const next = new Set(prev);
+                                        if (isActive) {
+                                            next.add(itemId);
+                                        } else {
+                                            next.delete(itemId);
+                                        }
+                                        return next;
+                                    });
+                                }}
+                            />
                         ))}
                     </SortableContext>
                 </SidebarMenu>
@@ -526,6 +559,8 @@ function TreeItemRenderer({
   prefetchPage,
   utils,
   onItemDeleted,
+  isInReorderMode,
+  onReorderModeChange,
 }: {
   item: TreeItem;
   workspaceId: string;
@@ -533,6 +568,8 @@ function TreeItemRenderer({
   prefetchPage: (pageId: string) => void;
   utils: ReturnType<typeof api.useUtils>;
   onItemDeleted?: (itemId: string) => void;
+  isInReorderMode?: boolean;
+  onReorderModeChange?: (itemId: string, isActive: boolean) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -540,6 +577,8 @@ function TreeItemRenderer({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(item.name);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [pointerStartPos, setPointerStartPos] = useState<{ x: number; y: number } | null>(null);
 
   const renameFolder = api.workspace.renameFolder.useMutation({
     onSuccess: () => {
@@ -598,6 +637,76 @@ function TreeItemRenderer({
       }
   };
 
+  // Long press handlers for iOS-style reorder mode
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (!isOwner) return;
+    
+    // Store initial pointer position
+    setPointerStartPos({ x: e.clientX, y: e.clientY });
+    
+    // Only start long press timer if not already in reorder mode
+    if (!isInReorderMode) {
+      const timer = setTimeout(() => {
+        onReorderModeChange?.(item.id, true);
+        // Haptic feedback when reorder mode activates
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([50, 30, 50]);
+        }
+      }, 500); // 500ms long press
+      setLongPressTimer(timer);
+    }
+  }, [isOwner, isInReorderMode, item.id, onReorderModeChange]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isOwner || !pointerStartPos) return;
+    
+    // Calculate distance moved
+    const deltaX = Math.abs(e.clientX - pointerStartPos.x);
+    const deltaY = Math.abs(e.clientY - pointerStartPos.y);
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // If user moved more than 10px, cancel long press (they're scrolling)
+    if (distance > 10) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+      if (isInReorderMode) {
+        onReorderModeChange?.(item.id, false);
+      }
+      setPointerStartPos(null);
+    }
+  }, [isOwner, pointerStartPos, longPressTimer, isInReorderMode, item.id, onReorderModeChange]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setPointerStartPos(null);
+  }, [longPressTimer]);
+
+  const handlePointerCancel = useCallback(() => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    // Exit reorder mode if user releases without dragging
+    if (isInReorderMode) {
+      onReorderModeChange?.(item.id, false);
+    }
+    setPointerStartPos(null);
+  }, [longPressTimer, isInReorderMode, item.id, onReorderModeChange]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
   const {
     attributes,
     listeners,
@@ -605,7 +714,32 @@ function TreeItemRenderer({
     transform,
     transition,
     isDragging
-  } = useSortable({ id: item.id, data: item });
+  } = useSortable({ 
+    id: item.id, 
+    data: item,
+    disabled: !isOwner, // Only disable if user is not owner
+  });
+
+  // Merge long press handlers with drag listeners
+  const enhancedListeners = isOwner ? {
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent) => {
+      handlePointerDown(e);
+      listeners?.onPointerDown?.(e);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      handlePointerMove(e);
+      listeners?.onPointerMove?.(e);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      handlePointerUp();
+      listeners?.onPointerUp?.(e);
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      handlePointerCancel();
+      listeners?.onPointerCancel?.(e);
+    },
+  } : {};
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -615,7 +749,16 @@ function TreeItemRenderer({
 
   if (item.type === "folder") {
     return (
-      <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
+      <div 
+        ref={setNodeRef} 
+        style={style} 
+        {...attributes} 
+        {...(isOwner ? enhancedListeners : {})} 
+        className={cn(
+          "group/item",
+          isInReorderMode && "animate-shake"
+        )}
+      >
         <Collapsible defaultOpen className="group/collapsible">
             <SidebarMenuItem>
               <div className="flex items-center w-full group/folder-row relative">
@@ -693,6 +836,8 @@ function TreeItemRenderer({
                             prefetchPage={prefetchPage}
                             utils={utils}
                             onItemDeleted={onItemDeleted}
+                            isInReorderMode={isInReorderMode}
+                            onReorderModeChange={onReorderModeChange}
                             />
                         ))}
                     </SortableContext>
@@ -725,7 +870,16 @@ function TreeItemRenderer({
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="group/item">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...(isOwner ? enhancedListeners : {})} 
+      className={cn(
+        "group/item",
+        isInReorderMode && "animate-shake"
+      )}
+    >
         <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive} tooltip={item.name} className="cursor-grab active:cursor-grabbing group/row relative overflow-hidden">
                 <Link 
