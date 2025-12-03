@@ -121,7 +121,11 @@ export function PageLayoutClient({
   return (
     <>
       <DashboardBreadcrumb items={breadcrumbItems} />
-      <SmoothScrollContainer className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] overflow-y-auto">
+      <SmoothScrollContainer 
+        className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] overflow-y-auto"
+        duration={1.0}
+        wheelMultiplier={1.2}
+      >
         {children}
       </SmoothScrollContainer>
     </>
