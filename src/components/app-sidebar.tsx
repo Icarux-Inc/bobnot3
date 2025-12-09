@@ -37,6 +37,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -490,7 +491,28 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <TeamSwitcher teams={workspacesWithIcons} />
+        <div className="flex items-center gap-2">
+          <SidebarTrigger />
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <div className="flex items-center gap-2">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground group-data-[collapsible=icon]:hidden">
+                    <GalleryVerticalEnd className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {workspacesWithIcons[0]?.name || "Workspace"}
+                    </span>
+                    <span className="truncate text-xs">
+                      {workspacesWithIcons[0]?.plan || "Free"}
+                    </span>
+                  </div>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
       </SidebarHeader>
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Fixed Platform header */}

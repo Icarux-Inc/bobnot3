@@ -1411,6 +1411,8 @@ export namespace Prisma {
     sessions: number
     workspaces: number
     sharedPages: number
+    memberships: number
+    sharedFolders: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1418,6 +1420,8 @@ export namespace Prisma {
     sessions?: boolean | UserCountOutputTypeCountSessionsArgs
     workspaces?: boolean | UserCountOutputTypeCountWorkspacesArgs
     sharedPages?: boolean | UserCountOutputTypeCountSharedPagesArgs
+    memberships?: boolean | UserCountOutputTypeCountMembershipsArgs
+    sharedFolders?: boolean | UserCountOutputTypeCountSharedFoldersArgs
   }
 
   // Custom InputTypes
@@ -1459,17 +1463,33 @@ export namespace Prisma {
     where?: PageWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspaceWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountSharedFoldersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FolderWhereInput
+  }
+
 
   /**
    * Count Type WorkspaceCountOutputType
    */
 
   export type WorkspaceCountOutputType = {
+    members: number
     folders: number
     pages: number
   }
 
   export type WorkspaceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    members?: boolean | WorkspaceCountOutputTypeCountMembersArgs
     folders?: boolean | WorkspaceCountOutputTypeCountFoldersArgs
     pages?: boolean | WorkspaceCountOutputTypeCountPagesArgs
   }
@@ -1483,6 +1503,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the WorkspaceCountOutputType
      */
     select?: WorkspaceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * WorkspaceCountOutputType without action
+   */
+  export type WorkspaceCountOutputTypeCountMembersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserWhereInput
   }
 
   /**
@@ -1507,11 +1534,13 @@ export namespace Prisma {
   export type FolderCountOutputType = {
     children: number
     pages: number
+    collaborators: number
   }
 
   export type FolderCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     children?: boolean | FolderCountOutputTypeCountChildrenArgs
     pages?: boolean | FolderCountOutputTypeCountPagesArgs
+    collaborators?: boolean | FolderCountOutputTypeCountCollaboratorsArgs
   }
 
   // Custom InputTypes
@@ -1537,6 +1566,13 @@ export namespace Prisma {
    */
   export type FolderCountOutputTypeCountPagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PageWhereInput
+  }
+
+  /**
+   * FolderCountOutputType without action
+   */
+  export type FolderCountOutputTypeCountCollaboratorsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserWhereInput
   }
 
 
@@ -3988,6 +4024,8 @@ export namespace Prisma {
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     workspaces?: boolean | User$workspacesArgs<ExtArgs>
     sharedPages?: boolean | User$sharedPagesArgs<ExtArgs>
+    memberships?: boolean | User$membershipsArgs<ExtArgs>
+    sharedFolders?: boolean | User$sharedFoldersArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -4021,6 +4059,8 @@ export namespace Prisma {
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     workspaces?: boolean | User$workspacesArgs<ExtArgs>
     sharedPages?: boolean | User$sharedPagesArgs<ExtArgs>
+    memberships?: boolean | User$membershipsArgs<ExtArgs>
+    sharedFolders?: boolean | User$sharedFoldersArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -4033,6 +4073,8 @@ export namespace Prisma {
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       workspaces: Prisma.$WorkspacePayload<ExtArgs>[]
       sharedPages: Prisma.$PagePayload<ExtArgs>[]
+      memberships: Prisma.$WorkspacePayload<ExtArgs>[]
+      sharedFolders: Prisma.$FolderPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4438,6 +4480,8 @@ export namespace Prisma {
     sessions<T extends User$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     workspaces<T extends User$workspacesArgs<ExtArgs> = {}>(args?: Subset<T, User$workspacesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     sharedPages<T extends User$sharedPagesArgs<ExtArgs> = {}>(args?: Subset<T, User$sharedPagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    memberships<T extends User$membershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$membershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    sharedFolders<T extends User$sharedFoldersArgs<ExtArgs> = {}>(args?: Subset<T, User$sharedFoldersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4956,6 +5000,54 @@ export namespace Prisma {
   }
 
   /**
+   * User.memberships
+   */
+  export type User$membershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceInclude<ExtArgs> | null
+    where?: WorkspaceWhereInput
+    orderBy?: WorkspaceOrderByWithRelationInput | WorkspaceOrderByWithRelationInput[]
+    cursor?: WorkspaceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WorkspaceScalarFieldEnum | WorkspaceScalarFieldEnum[]
+  }
+
+  /**
+   * User.sharedFolders
+   */
+  export type User$sharedFoldersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Folder
+     */
+    select?: FolderSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Folder
+     */
+    omit?: FolderOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FolderInclude<ExtArgs> | null
+    where?: FolderWhereInput
+    orderBy?: FolderOrderByWithRelationInput | FolderOrderByWithRelationInput[]
+    cursor?: FolderWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FolderScalarFieldEnum | FolderScalarFieldEnum[]
+  }
+
+  /**
    * User without action
    */
   export type UserDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5139,6 +5231,7 @@ export namespace Prisma {
     updatedAt?: boolean
     ownerId?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
+    members?: boolean | Workspace$membersArgs<ExtArgs>
     folders?: boolean | Workspace$foldersArgs<ExtArgs>
     pages?: boolean | Workspace$pagesArgs<ExtArgs>
     _count?: boolean | WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
@@ -5173,6 +5266,7 @@ export namespace Prisma {
   export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "createdAt" | "updatedAt" | "ownerId", ExtArgs["result"]["workspace"]>
   export type WorkspaceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     owner?: boolean | UserDefaultArgs<ExtArgs>
+    members?: boolean | Workspace$membersArgs<ExtArgs>
     folders?: boolean | Workspace$foldersArgs<ExtArgs>
     pages?: boolean | Workspace$pagesArgs<ExtArgs>
     _count?: boolean | WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
@@ -5188,6 +5282,7 @@ export namespace Prisma {
     name: "Workspace"
     objects: {
       owner: Prisma.$UserPayload<ExtArgs>
+      members: Prisma.$UserPayload<ExtArgs>[]
       folders: Prisma.$FolderPayload<ExtArgs>[]
       pages: Prisma.$PagePayload<ExtArgs>[]
     }
@@ -5592,6 +5687,7 @@ export namespace Prisma {
   export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     owner<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    members<T extends Workspace$membersArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$membersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     folders<T extends Workspace$foldersArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$foldersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pages<T extends Workspace$pagesArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$pagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -6024,6 +6120,30 @@ export namespace Prisma {
   }
 
   /**
+   * Workspace.members
+   */
+  export type Workspace$membersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+    orderBy?: UserOrderByWithRelationInput | UserOrderByWithRelationInput[]
+    cursor?: UserWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+  }
+
+  /**
    * Workspace.folders
    */
   export type Workspace$foldersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6308,6 +6428,7 @@ export namespace Prisma {
     parent?: boolean | Folder$parentArgs<ExtArgs>
     children?: boolean | Folder$childrenArgs<ExtArgs>
     pages?: boolean | Folder$pagesArgs<ExtArgs>
+    collaborators?: boolean | Folder$collaboratorsArgs<ExtArgs>
     _count?: boolean | FolderCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["folder"]>
 
@@ -6351,6 +6472,7 @@ export namespace Prisma {
     parent?: boolean | Folder$parentArgs<ExtArgs>
     children?: boolean | Folder$childrenArgs<ExtArgs>
     pages?: boolean | Folder$pagesArgs<ExtArgs>
+    collaborators?: boolean | Folder$collaboratorsArgs<ExtArgs>
     _count?: boolean | FolderCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type FolderIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6369,6 +6491,7 @@ export namespace Prisma {
       parent: Prisma.$FolderPayload<ExtArgs> | null
       children: Prisma.$FolderPayload<ExtArgs>[]
       pages: Prisma.$PagePayload<ExtArgs>[]
+      collaborators: Prisma.$UserPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -6776,6 +6899,7 @@ export namespace Prisma {
     parent<T extends Folder$parentArgs<ExtArgs> = {}>(args?: Subset<T, Folder$parentArgs<ExtArgs>>): Prisma__FolderClient<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     children<T extends Folder$childrenArgs<ExtArgs> = {}>(args?: Subset<T, Folder$childrenArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pages<T extends Folder$pagesArgs<ExtArgs> = {}>(args?: Subset<T, Folder$pagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    collaborators<T extends Folder$collaboratorsArgs<ExtArgs> = {}>(args?: Subset<T, Folder$collaboratorsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7272,6 +7396,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PageScalarFieldEnum | PageScalarFieldEnum[]
+  }
+
+  /**
+   * Folder.collaborators
+   */
+  export type Folder$collaboratorsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+    orderBy?: UserOrderByWithRelationInput | UserOrderByWithRelationInput[]
+    cursor?: UserWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
   }
 
   /**
@@ -9855,6 +10003,8 @@ export namespace Prisma {
     sessions?: SessionListRelationFilter
     workspaces?: WorkspaceListRelationFilter
     sharedPages?: PageListRelationFilter
+    memberships?: WorkspaceListRelationFilter
+    sharedFolders?: FolderListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -9867,6 +10017,8 @@ export namespace Prisma {
     sessions?: SessionOrderByRelationAggregateInput
     workspaces?: WorkspaceOrderByRelationAggregateInput
     sharedPages?: PageOrderByRelationAggregateInput
+    memberships?: WorkspaceOrderByRelationAggregateInput
+    sharedFolders?: FolderOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -9882,6 +10034,8 @@ export namespace Prisma {
     sessions?: SessionListRelationFilter
     workspaces?: WorkspaceListRelationFilter
     sharedPages?: PageListRelationFilter
+    memberships?: WorkspaceListRelationFilter
+    sharedFolders?: FolderListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -9916,6 +10070,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Workspace"> | Date | string
     ownerId?: StringFilter<"Workspace"> | string
     owner?: XOR<UserScalarRelationFilter, UserWhereInput>
+    members?: UserListRelationFilter
     folders?: FolderListRelationFilter
     pages?: PageListRelationFilter
   }
@@ -9927,6 +10082,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     ownerId?: SortOrder
     owner?: UserOrderByWithRelationInput
+    members?: UserOrderByRelationAggregateInput
     folders?: FolderOrderByRelationAggregateInput
     pages?: PageOrderByRelationAggregateInput
   }
@@ -9941,6 +10097,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Workspace"> | Date | string
     ownerId?: StringFilter<"Workspace"> | string
     owner?: XOR<UserScalarRelationFilter, UserWhereInput>
+    members?: UserListRelationFilter
     folders?: FolderListRelationFilter
     pages?: PageListRelationFilter
   }, "id">
@@ -9982,6 +10139,7 @@ export namespace Prisma {
     parent?: XOR<FolderNullableScalarRelationFilter, FolderWhereInput> | null
     children?: FolderListRelationFilter
     pages?: PageListRelationFilter
+    collaborators?: UserListRelationFilter
   }
 
   export type FolderOrderByWithRelationInput = {
@@ -9996,6 +10154,7 @@ export namespace Prisma {
     parent?: FolderOrderByWithRelationInput
     children?: FolderOrderByRelationAggregateInput
     pages?: PageOrderByRelationAggregateInput
+    collaborators?: UserOrderByRelationAggregateInput
   }
 
   export type FolderWhereUniqueInput = Prisma.AtLeast<{
@@ -10013,6 +10172,7 @@ export namespace Prisma {
     parent?: XOR<FolderNullableScalarRelationFilter, FolderWhereInput> | null
     children?: FolderListRelationFilter
     pages?: PageListRelationFilter
+    collaborators?: UserListRelationFilter
   }, "id">
 
   export type FolderOrderByWithAggregationInput = {
@@ -10343,6 +10503,8 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceCreateNestedManyWithoutOwnerInput
     sharedPages?: PageCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -10355,6 +10517,8 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
     sharedPages?: PageUncheckedCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceUncheckedCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderUncheckedCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserUpdateInput = {
@@ -10367,6 +10531,8 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUpdateManyWithoutOwnerNestedInput
     sharedPages?: PageUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -10379,6 +10545,8 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
     sharedPages?: PageUncheckedUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUncheckedUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -10411,6 +10579,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutWorkspacesInput
+    members?: UserCreateNestedManyWithoutMembershipsInput
     folders?: FolderCreateNestedManyWithoutWorkspaceInput
     pages?: PageCreateNestedManyWithoutWorkspaceInput
   }
@@ -10421,6 +10590,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ownerId: string
+    members?: UserUncheckedCreateNestedManyWithoutMembershipsInput
     folders?: FolderUncheckedCreateNestedManyWithoutWorkspaceInput
     pages?: PageUncheckedCreateNestedManyWithoutWorkspaceInput
   }
@@ -10431,6 +10601,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutWorkspacesNestedInput
+    members?: UserUpdateManyWithoutMembershipsNestedInput
     folders?: FolderUpdateManyWithoutWorkspaceNestedInput
     pages?: PageUpdateManyWithoutWorkspaceNestedInput
   }
@@ -10441,6 +10612,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    members?: UserUncheckedUpdateManyWithoutMembershipsNestedInput
     folders?: FolderUncheckedUpdateManyWithoutWorkspaceNestedInput
     pages?: PageUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
@@ -10478,6 +10650,7 @@ export namespace Prisma {
     parent?: FolderCreateNestedOneWithoutChildrenInput
     children?: FolderCreateNestedManyWithoutParentInput
     pages?: PageCreateNestedManyWithoutFolderInput
+    collaborators?: UserCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderUncheckedCreateInput = {
@@ -10490,6 +10663,7 @@ export namespace Prisma {
     order?: number
     children?: FolderUncheckedCreateNestedManyWithoutParentInput
     pages?: PageUncheckedCreateNestedManyWithoutFolderInput
+    collaborators?: UserUncheckedCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderUpdateInput = {
@@ -10502,6 +10676,7 @@ export namespace Prisma {
     parent?: FolderUpdateOneWithoutChildrenNestedInput
     children?: FolderUpdateManyWithoutParentNestedInput
     pages?: PageUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateInput = {
@@ -10514,6 +10689,7 @@ export namespace Prisma {
     order?: IntFieldUpdateOperationsInput | number
     children?: FolderUncheckedUpdateManyWithoutParentNestedInput
     pages?: PageUncheckedUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUncheckedUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderCreateManyInput = {
@@ -10926,6 +11102,12 @@ export namespace Prisma {
     none?: PageWhereInput
   }
 
+  export type FolderListRelationFilter = {
+    every?: FolderWhereInput
+    some?: FolderWhereInput
+    none?: FolderWhereInput
+  }
+
   export type AccountOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -10939,6 +11121,10 @@ export namespace Prisma {
   }
 
   export type PageOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type FolderOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -10980,13 +11166,13 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
-  export type FolderListRelationFilter = {
-    every?: FolderWhereInput
-    some?: FolderWhereInput
-    none?: FolderWhereInput
+  export type UserListRelationFilter = {
+    every?: UserWhereInput
+    some?: UserWhereInput
+    none?: UserWhereInput
   }
 
-  export type FolderOrderByRelationAggregateInput = {
+  export type UserOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -11110,16 +11296,6 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
-
-  export type UserListRelationFilter = {
-    every?: UserWhereInput
-    some?: UserWhereInput
-    none?: UserWhereInput
-  }
-
-  export type UserOrderByRelationAggregateInput = {
-    _count?: SortOrder
   }
 
   export type PageCountOrderByAggregateInput = {
@@ -11291,6 +11467,18 @@ export namespace Prisma {
     connect?: PageWhereUniqueInput | PageWhereUniqueInput[]
   }
 
+  export type WorkspaceCreateNestedManyWithoutMembersInput = {
+    create?: XOR<WorkspaceCreateWithoutMembersInput, WorkspaceUncheckedCreateWithoutMembersInput> | WorkspaceCreateWithoutMembersInput[] | WorkspaceUncheckedCreateWithoutMembersInput[]
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutMembersInput | WorkspaceCreateOrConnectWithoutMembersInput[]
+    connect?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+  }
+
+  export type FolderCreateNestedManyWithoutCollaboratorsInput = {
+    create?: XOR<FolderCreateWithoutCollaboratorsInput, FolderUncheckedCreateWithoutCollaboratorsInput> | FolderCreateWithoutCollaboratorsInput[] | FolderUncheckedCreateWithoutCollaboratorsInput[]
+    connectOrCreate?: FolderCreateOrConnectWithoutCollaboratorsInput | FolderCreateOrConnectWithoutCollaboratorsInput[]
+    connect?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -11316,6 +11504,18 @@ export namespace Prisma {
     create?: XOR<PageCreateWithoutCollaboratorsInput, PageUncheckedCreateWithoutCollaboratorsInput> | PageCreateWithoutCollaboratorsInput[] | PageUncheckedCreateWithoutCollaboratorsInput[]
     connectOrCreate?: PageCreateOrConnectWithoutCollaboratorsInput | PageCreateOrConnectWithoutCollaboratorsInput[]
     connect?: PageWhereUniqueInput | PageWhereUniqueInput[]
+  }
+
+  export type WorkspaceUncheckedCreateNestedManyWithoutMembersInput = {
+    create?: XOR<WorkspaceCreateWithoutMembersInput, WorkspaceUncheckedCreateWithoutMembersInput> | WorkspaceCreateWithoutMembersInput[] | WorkspaceUncheckedCreateWithoutMembersInput[]
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutMembersInput | WorkspaceCreateOrConnectWithoutMembersInput[]
+    connect?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+  }
+
+  export type FolderUncheckedCreateNestedManyWithoutCollaboratorsInput = {
+    create?: XOR<FolderCreateWithoutCollaboratorsInput, FolderUncheckedCreateWithoutCollaboratorsInput> | FolderCreateWithoutCollaboratorsInput[] | FolderUncheckedCreateWithoutCollaboratorsInput[]
+    connectOrCreate?: FolderCreateOrConnectWithoutCollaboratorsInput | FolderCreateOrConnectWithoutCollaboratorsInput[]
+    connect?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -11377,6 +11577,32 @@ export namespace Prisma {
     deleteMany?: PageScalarWhereInput | PageScalarWhereInput[]
   }
 
+  export type WorkspaceUpdateManyWithoutMembersNestedInput = {
+    create?: XOR<WorkspaceCreateWithoutMembersInput, WorkspaceUncheckedCreateWithoutMembersInput> | WorkspaceCreateWithoutMembersInput[] | WorkspaceUncheckedCreateWithoutMembersInput[]
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutMembersInput | WorkspaceCreateOrConnectWithoutMembersInput[]
+    upsert?: WorkspaceUpsertWithWhereUniqueWithoutMembersInput | WorkspaceUpsertWithWhereUniqueWithoutMembersInput[]
+    set?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    disconnect?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    delete?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    connect?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    update?: WorkspaceUpdateWithWhereUniqueWithoutMembersInput | WorkspaceUpdateWithWhereUniqueWithoutMembersInput[]
+    updateMany?: WorkspaceUpdateManyWithWhereWithoutMembersInput | WorkspaceUpdateManyWithWhereWithoutMembersInput[]
+    deleteMany?: WorkspaceScalarWhereInput | WorkspaceScalarWhereInput[]
+  }
+
+  export type FolderUpdateManyWithoutCollaboratorsNestedInput = {
+    create?: XOR<FolderCreateWithoutCollaboratorsInput, FolderUncheckedCreateWithoutCollaboratorsInput> | FolderCreateWithoutCollaboratorsInput[] | FolderUncheckedCreateWithoutCollaboratorsInput[]
+    connectOrCreate?: FolderCreateOrConnectWithoutCollaboratorsInput | FolderCreateOrConnectWithoutCollaboratorsInput[]
+    upsert?: FolderUpsertWithWhereUniqueWithoutCollaboratorsInput | FolderUpsertWithWhereUniqueWithoutCollaboratorsInput[]
+    set?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    disconnect?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    delete?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    connect?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    update?: FolderUpdateWithWhereUniqueWithoutCollaboratorsInput | FolderUpdateWithWhereUniqueWithoutCollaboratorsInput[]
+    updateMany?: FolderUpdateManyWithWhereWithoutCollaboratorsInput | FolderUpdateManyWithWhereWithoutCollaboratorsInput[]
+    deleteMany?: FolderScalarWhereInput | FolderScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -11432,10 +11658,42 @@ export namespace Prisma {
     deleteMany?: PageScalarWhereInput | PageScalarWhereInput[]
   }
 
+  export type WorkspaceUncheckedUpdateManyWithoutMembersNestedInput = {
+    create?: XOR<WorkspaceCreateWithoutMembersInput, WorkspaceUncheckedCreateWithoutMembersInput> | WorkspaceCreateWithoutMembersInput[] | WorkspaceUncheckedCreateWithoutMembersInput[]
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutMembersInput | WorkspaceCreateOrConnectWithoutMembersInput[]
+    upsert?: WorkspaceUpsertWithWhereUniqueWithoutMembersInput | WorkspaceUpsertWithWhereUniqueWithoutMembersInput[]
+    set?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    disconnect?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    delete?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    connect?: WorkspaceWhereUniqueInput | WorkspaceWhereUniqueInput[]
+    update?: WorkspaceUpdateWithWhereUniqueWithoutMembersInput | WorkspaceUpdateWithWhereUniqueWithoutMembersInput[]
+    updateMany?: WorkspaceUpdateManyWithWhereWithoutMembersInput | WorkspaceUpdateManyWithWhereWithoutMembersInput[]
+    deleteMany?: WorkspaceScalarWhereInput | WorkspaceScalarWhereInput[]
+  }
+
+  export type FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput = {
+    create?: XOR<FolderCreateWithoutCollaboratorsInput, FolderUncheckedCreateWithoutCollaboratorsInput> | FolderCreateWithoutCollaboratorsInput[] | FolderUncheckedCreateWithoutCollaboratorsInput[]
+    connectOrCreate?: FolderCreateOrConnectWithoutCollaboratorsInput | FolderCreateOrConnectWithoutCollaboratorsInput[]
+    upsert?: FolderUpsertWithWhereUniqueWithoutCollaboratorsInput | FolderUpsertWithWhereUniqueWithoutCollaboratorsInput[]
+    set?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    disconnect?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    delete?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    connect?: FolderWhereUniqueInput | FolderWhereUniqueInput[]
+    update?: FolderUpdateWithWhereUniqueWithoutCollaboratorsInput | FolderUpdateWithWhereUniqueWithoutCollaboratorsInput[]
+    updateMany?: FolderUpdateManyWithWhereWithoutCollaboratorsInput | FolderUpdateManyWithWhereWithoutCollaboratorsInput[]
+    deleteMany?: FolderScalarWhereInput | FolderScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutWorkspacesInput = {
     create?: XOR<UserCreateWithoutWorkspacesInput, UserUncheckedCreateWithoutWorkspacesInput>
     connectOrCreate?: UserCreateOrConnectWithoutWorkspacesInput
     connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedManyWithoutMembershipsInput = {
+    create?: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput> | UserCreateWithoutMembershipsInput[] | UserUncheckedCreateWithoutMembershipsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutMembershipsInput | UserCreateOrConnectWithoutMembershipsInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
   }
 
   export type FolderCreateNestedManyWithoutWorkspaceInput = {
@@ -11450,6 +11708,12 @@ export namespace Prisma {
     connectOrCreate?: PageCreateOrConnectWithoutWorkspaceInput | PageCreateOrConnectWithoutWorkspaceInput[]
     createMany?: PageCreateManyWorkspaceInputEnvelope
     connect?: PageWhereUniqueInput | PageWhereUniqueInput[]
+  }
+
+  export type UserUncheckedCreateNestedManyWithoutMembershipsInput = {
+    create?: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput> | UserCreateWithoutMembershipsInput[] | UserUncheckedCreateWithoutMembershipsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutMembershipsInput | UserCreateOrConnectWithoutMembershipsInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
   }
 
   export type FolderUncheckedCreateNestedManyWithoutWorkspaceInput = {
@@ -11472,6 +11736,19 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutWorkspacesInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutWorkspacesInput, UserUpdateWithoutWorkspacesInput>, UserUncheckedUpdateWithoutWorkspacesInput>
+  }
+
+  export type UserUpdateManyWithoutMembershipsNestedInput = {
+    create?: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput> | UserCreateWithoutMembershipsInput[] | UserUncheckedCreateWithoutMembershipsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutMembershipsInput | UserCreateOrConnectWithoutMembershipsInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutMembershipsInput | UserUpsertWithWhereUniqueWithoutMembershipsInput[]
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutMembershipsInput | UserUpdateWithWhereUniqueWithoutMembershipsInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutMembershipsInput | UserUpdateManyWithWhereWithoutMembershipsInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
   }
 
   export type FolderUpdateManyWithoutWorkspaceNestedInput = {
@@ -11500,6 +11777,19 @@ export namespace Prisma {
     update?: PageUpdateWithWhereUniqueWithoutWorkspaceInput | PageUpdateWithWhereUniqueWithoutWorkspaceInput[]
     updateMany?: PageUpdateManyWithWhereWithoutWorkspaceInput | PageUpdateManyWithWhereWithoutWorkspaceInput[]
     deleteMany?: PageScalarWhereInput | PageScalarWhereInput[]
+  }
+
+  export type UserUncheckedUpdateManyWithoutMembershipsNestedInput = {
+    create?: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput> | UserCreateWithoutMembershipsInput[] | UserUncheckedCreateWithoutMembershipsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutMembershipsInput | UserCreateOrConnectWithoutMembershipsInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutMembershipsInput | UserUpsertWithWhereUniqueWithoutMembershipsInput[]
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutMembershipsInput | UserUpdateWithWhereUniqueWithoutMembershipsInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutMembershipsInput | UserUpdateManyWithWhereWithoutMembershipsInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
   }
 
   export type FolderUncheckedUpdateManyWithoutWorkspaceNestedInput = {
@@ -11556,6 +11846,12 @@ export namespace Prisma {
     connect?: PageWhereUniqueInput | PageWhereUniqueInput[]
   }
 
+  export type UserCreateNestedManyWithoutSharedFoldersInput = {
+    create?: XOR<UserCreateWithoutSharedFoldersInput, UserUncheckedCreateWithoutSharedFoldersInput> | UserCreateWithoutSharedFoldersInput[] | UserUncheckedCreateWithoutSharedFoldersInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSharedFoldersInput | UserCreateOrConnectWithoutSharedFoldersInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+  }
+
   export type FolderUncheckedCreateNestedManyWithoutParentInput = {
     create?: XOR<FolderCreateWithoutParentInput, FolderUncheckedCreateWithoutParentInput> | FolderCreateWithoutParentInput[] | FolderUncheckedCreateWithoutParentInput[]
     connectOrCreate?: FolderCreateOrConnectWithoutParentInput | FolderCreateOrConnectWithoutParentInput[]
@@ -11568,6 +11864,12 @@ export namespace Prisma {
     connectOrCreate?: PageCreateOrConnectWithoutFolderInput | PageCreateOrConnectWithoutFolderInput[]
     createMany?: PageCreateManyFolderInputEnvelope
     connect?: PageWhereUniqueInput | PageWhereUniqueInput[]
+  }
+
+  export type UserUncheckedCreateNestedManyWithoutSharedFoldersInput = {
+    create?: XOR<UserCreateWithoutSharedFoldersInput, UserUncheckedCreateWithoutSharedFoldersInput> | UserCreateWithoutSharedFoldersInput[] | UserUncheckedCreateWithoutSharedFoldersInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSharedFoldersInput | UserCreateOrConnectWithoutSharedFoldersInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -11624,6 +11926,19 @@ export namespace Prisma {
     deleteMany?: PageScalarWhereInput | PageScalarWhereInput[]
   }
 
+  export type UserUpdateManyWithoutSharedFoldersNestedInput = {
+    create?: XOR<UserCreateWithoutSharedFoldersInput, UserUncheckedCreateWithoutSharedFoldersInput> | UserCreateWithoutSharedFoldersInput[] | UserUncheckedCreateWithoutSharedFoldersInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSharedFoldersInput | UserCreateOrConnectWithoutSharedFoldersInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutSharedFoldersInput | UserUpsertWithWhereUniqueWithoutSharedFoldersInput[]
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutSharedFoldersInput | UserUpdateWithWhereUniqueWithoutSharedFoldersInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutSharedFoldersInput | UserUpdateManyWithWhereWithoutSharedFoldersInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
+  }
+
   export type FolderUncheckedUpdateManyWithoutParentNestedInput = {
     create?: XOR<FolderCreateWithoutParentInput, FolderUncheckedCreateWithoutParentInput> | FolderCreateWithoutParentInput[] | FolderUncheckedCreateWithoutParentInput[]
     connectOrCreate?: FolderCreateOrConnectWithoutParentInput | FolderCreateOrConnectWithoutParentInput[]
@@ -11650,6 +11965,19 @@ export namespace Prisma {
     update?: PageUpdateWithWhereUniqueWithoutFolderInput | PageUpdateWithWhereUniqueWithoutFolderInput[]
     updateMany?: PageUpdateManyWithWhereWithoutFolderInput | PageUpdateManyWithWhereWithoutFolderInput[]
     deleteMany?: PageScalarWhereInput | PageScalarWhereInput[]
+  }
+
+  export type UserUncheckedUpdateManyWithoutSharedFoldersNestedInput = {
+    create?: XOR<UserCreateWithoutSharedFoldersInput, UserUncheckedCreateWithoutSharedFoldersInput> | UserCreateWithoutSharedFoldersInput[] | UserUncheckedCreateWithoutSharedFoldersInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSharedFoldersInput | UserCreateOrConnectWithoutSharedFoldersInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutSharedFoldersInput | UserUpsertWithWhereUniqueWithoutSharedFoldersInput[]
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutSharedFoldersInput | UserUpdateWithWhereUniqueWithoutSharedFoldersInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutSharedFoldersInput | UserUpdateManyWithWhereWithoutSharedFoldersInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
   }
 
   export type WorkspaceCreateNestedOneWithoutPagesInput = {
@@ -11940,6 +12268,8 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceCreateNestedManyWithoutOwnerInput
     sharedPages?: PageCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -11951,6 +12281,8 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
     sharedPages?: PageUncheckedCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceUncheckedCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderUncheckedCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -11978,6 +12310,8 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUpdateManyWithoutOwnerNestedInput
     sharedPages?: PageUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -11989,6 +12323,8 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
     sharedPages?: PageUncheckedUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUncheckedUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -12000,6 +12336,8 @@ export namespace Prisma {
     accounts?: AccountCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceCreateNestedManyWithoutOwnerInput
     sharedPages?: PageCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -12011,6 +12349,8 @@ export namespace Prisma {
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
     sharedPages?: PageUncheckedCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceUncheckedCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderUncheckedCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -12038,6 +12378,8 @@ export namespace Prisma {
     accounts?: AccountUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUpdateManyWithoutOwnerNestedInput
     sharedPages?: PageUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -12049,6 +12391,8 @@ export namespace Prisma {
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
     sharedPages?: PageUncheckedUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUncheckedUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -12118,6 +12462,7 @@ export namespace Prisma {
     name: string
     createdAt?: Date | string
     updatedAt?: Date | string
+    members?: UserCreateNestedManyWithoutMembershipsInput
     folders?: FolderCreateNestedManyWithoutWorkspaceInput
     pages?: PageCreateNestedManyWithoutWorkspaceInput
   }
@@ -12127,6 +12472,7 @@ export namespace Prisma {
     name: string
     createdAt?: Date | string
     updatedAt?: Date | string
+    members?: UserUncheckedCreateNestedManyWithoutMembershipsInput
     folders?: FolderUncheckedCreateNestedManyWithoutWorkspaceInput
     pages?: PageUncheckedCreateNestedManyWithoutWorkspaceInput
   }
@@ -12170,6 +12516,60 @@ export namespace Prisma {
   export type PageCreateOrConnectWithoutCollaboratorsInput = {
     where: PageWhereUniqueInput
     create: XOR<PageCreateWithoutCollaboratorsInput, PageUncheckedCreateWithoutCollaboratorsInput>
+  }
+
+  export type WorkspaceCreateWithoutMembersInput = {
+    id?: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutWorkspacesInput
+    folders?: FolderCreateNestedManyWithoutWorkspaceInput
+    pages?: PageCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceUncheckedCreateWithoutMembersInput = {
+    id?: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ownerId: string
+    folders?: FolderUncheckedCreateNestedManyWithoutWorkspaceInput
+    pages?: PageUncheckedCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceCreateOrConnectWithoutMembersInput = {
+    where: WorkspaceWhereUniqueInput
+    create: XOR<WorkspaceCreateWithoutMembersInput, WorkspaceUncheckedCreateWithoutMembersInput>
+  }
+
+  export type FolderCreateWithoutCollaboratorsInput = {
+    id?: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    order?: number
+    workspace: WorkspaceCreateNestedOneWithoutFoldersInput
+    parent?: FolderCreateNestedOneWithoutChildrenInput
+    children?: FolderCreateNestedManyWithoutParentInput
+    pages?: PageCreateNestedManyWithoutFolderInput
+  }
+
+  export type FolderUncheckedCreateWithoutCollaboratorsInput = {
+    id?: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    workspaceId: string
+    parentId?: string | null
+    order?: number
+    children?: FolderUncheckedCreateNestedManyWithoutParentInput
+    pages?: PageUncheckedCreateNestedManyWithoutFolderInput
+  }
+
+  export type FolderCreateOrConnectWithoutCollaboratorsInput = {
+    where: FolderWhereUniqueInput
+    create: XOR<FolderCreateWithoutCollaboratorsInput, FolderUncheckedCreateWithoutCollaboratorsInput>
   }
 
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
@@ -12292,6 +12692,51 @@ export namespace Prisma {
     order?: IntFilter<"Page"> | number
   }
 
+  export type WorkspaceUpsertWithWhereUniqueWithoutMembersInput = {
+    where: WorkspaceWhereUniqueInput
+    update: XOR<WorkspaceUpdateWithoutMembersInput, WorkspaceUncheckedUpdateWithoutMembersInput>
+    create: XOR<WorkspaceCreateWithoutMembersInput, WorkspaceUncheckedCreateWithoutMembersInput>
+  }
+
+  export type WorkspaceUpdateWithWhereUniqueWithoutMembersInput = {
+    where: WorkspaceWhereUniqueInput
+    data: XOR<WorkspaceUpdateWithoutMembersInput, WorkspaceUncheckedUpdateWithoutMembersInput>
+  }
+
+  export type WorkspaceUpdateManyWithWhereWithoutMembersInput = {
+    where: WorkspaceScalarWhereInput
+    data: XOR<WorkspaceUpdateManyMutationInput, WorkspaceUncheckedUpdateManyWithoutMembersInput>
+  }
+
+  export type FolderUpsertWithWhereUniqueWithoutCollaboratorsInput = {
+    where: FolderWhereUniqueInput
+    update: XOR<FolderUpdateWithoutCollaboratorsInput, FolderUncheckedUpdateWithoutCollaboratorsInput>
+    create: XOR<FolderCreateWithoutCollaboratorsInput, FolderUncheckedCreateWithoutCollaboratorsInput>
+  }
+
+  export type FolderUpdateWithWhereUniqueWithoutCollaboratorsInput = {
+    where: FolderWhereUniqueInput
+    data: XOR<FolderUpdateWithoutCollaboratorsInput, FolderUncheckedUpdateWithoutCollaboratorsInput>
+  }
+
+  export type FolderUpdateManyWithWhereWithoutCollaboratorsInput = {
+    where: FolderScalarWhereInput
+    data: XOR<FolderUpdateManyMutationInput, FolderUncheckedUpdateManyWithoutCollaboratorsInput>
+  }
+
+  export type FolderScalarWhereInput = {
+    AND?: FolderScalarWhereInput | FolderScalarWhereInput[]
+    OR?: FolderScalarWhereInput[]
+    NOT?: FolderScalarWhereInput | FolderScalarWhereInput[]
+    id?: StringFilter<"Folder"> | string
+    name?: StringFilter<"Folder"> | string
+    createdAt?: DateTimeFilter<"Folder"> | Date | string
+    updatedAt?: DateTimeFilter<"Folder"> | Date | string
+    workspaceId?: StringFilter<"Folder"> | string
+    parentId?: StringNullableFilter<"Folder"> | string | null
+    order?: IntFilter<"Folder"> | number
+  }
+
   export type UserCreateWithoutWorkspacesInput = {
     id?: string
     name?: string | null
@@ -12301,6 +12746,8 @@ export namespace Prisma {
     accounts?: AccountCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     sharedPages?: PageCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserUncheckedCreateWithoutWorkspacesInput = {
@@ -12312,11 +12759,44 @@ export namespace Prisma {
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     sharedPages?: PageUncheckedCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceUncheckedCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderUncheckedCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserCreateOrConnectWithoutWorkspacesInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutWorkspacesInput, UserUncheckedCreateWithoutWorkspacesInput>
+  }
+
+  export type UserCreateWithoutMembershipsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    workspaces?: WorkspaceCreateNestedManyWithoutOwnerInput
+    sharedPages?: PageCreateNestedManyWithoutCollaboratorsInput
+    sharedFolders?: FolderCreateNestedManyWithoutCollaboratorsInput
+  }
+
+  export type UserUncheckedCreateWithoutMembershipsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
+    sharedPages?: PageUncheckedCreateNestedManyWithoutCollaboratorsInput
+    sharedFolders?: FolderUncheckedCreateNestedManyWithoutCollaboratorsInput
+  }
+
+  export type UserCreateOrConnectWithoutMembershipsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput>
   }
 
   export type FolderCreateWithoutWorkspaceInput = {
@@ -12328,6 +12808,7 @@ export namespace Prisma {
     parent?: FolderCreateNestedOneWithoutChildrenInput
     children?: FolderCreateNestedManyWithoutParentInput
     pages?: PageCreateNestedManyWithoutFolderInput
+    collaborators?: UserCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderUncheckedCreateWithoutWorkspaceInput = {
@@ -12339,6 +12820,7 @@ export namespace Prisma {
     order?: number
     children?: FolderUncheckedCreateNestedManyWithoutParentInput
     pages?: PageUncheckedCreateNestedManyWithoutFolderInput
+    collaborators?: UserUncheckedCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderCreateOrConnectWithoutWorkspaceInput = {
@@ -12407,6 +12889,8 @@ export namespace Prisma {
     accounts?: AccountUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     sharedPages?: PageUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserUncheckedUpdateWithoutWorkspacesInput = {
@@ -12418,6 +12902,35 @@ export namespace Prisma {
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     sharedPages?: PageUncheckedUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUncheckedUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput
+  }
+
+  export type UserUpsertWithWhereUniqueWithoutMembershipsInput = {
+    where: UserWhereUniqueInput
+    update: XOR<UserUpdateWithoutMembershipsInput, UserUncheckedUpdateWithoutMembershipsInput>
+    create: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput>
+  }
+
+  export type UserUpdateWithWhereUniqueWithoutMembershipsInput = {
+    where: UserWhereUniqueInput
+    data: XOR<UserUpdateWithoutMembershipsInput, UserUncheckedUpdateWithoutMembershipsInput>
+  }
+
+  export type UserUpdateManyWithWhereWithoutMembershipsInput = {
+    where: UserScalarWhereInput
+    data: XOR<UserUpdateManyMutationInput, UserUncheckedUpdateManyWithoutMembershipsInput>
+  }
+
+  export type UserScalarWhereInput = {
+    AND?: UserScalarWhereInput | UserScalarWhereInput[]
+    OR?: UserScalarWhereInput[]
+    NOT?: UserScalarWhereInput | UserScalarWhereInput[]
+    id?: StringFilter<"User"> | string
+    name?: StringNullableFilter<"User"> | string | null
+    email?: StringNullableFilter<"User"> | string | null
+    emailVerified?: DateTimeNullableFilter<"User"> | Date | string | null
+    image?: StringNullableFilter<"User"> | string | null
   }
 
   export type FolderUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -12434,19 +12947,6 @@ export namespace Prisma {
   export type FolderUpdateManyWithWhereWithoutWorkspaceInput = {
     where: FolderScalarWhereInput
     data: XOR<FolderUpdateManyMutationInput, FolderUncheckedUpdateManyWithoutWorkspaceInput>
-  }
-
-  export type FolderScalarWhereInput = {
-    AND?: FolderScalarWhereInput | FolderScalarWhereInput[]
-    OR?: FolderScalarWhereInput[]
-    NOT?: FolderScalarWhereInput | FolderScalarWhereInput[]
-    id?: StringFilter<"Folder"> | string
-    name?: StringFilter<"Folder"> | string
-    createdAt?: DateTimeFilter<"Folder"> | Date | string
-    updatedAt?: DateTimeFilter<"Folder"> | Date | string
-    workspaceId?: StringFilter<"Folder"> | string
-    parentId?: StringNullableFilter<"Folder"> | string | null
-    order?: IntFilter<"Folder"> | number
   }
 
   export type PageUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -12471,6 +12971,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutWorkspacesInput
+    members?: UserCreateNestedManyWithoutMembershipsInput
     pages?: PageCreateNestedManyWithoutWorkspaceInput
   }
 
@@ -12480,6 +12981,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ownerId: string
+    members?: UserUncheckedCreateNestedManyWithoutMembershipsInput
     pages?: PageUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
@@ -12497,6 +12999,7 @@ export namespace Prisma {
     workspace: WorkspaceCreateNestedOneWithoutFoldersInput
     parent?: FolderCreateNestedOneWithoutChildrenInput
     pages?: PageCreateNestedManyWithoutFolderInput
+    collaborators?: UserCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderUncheckedCreateWithoutChildrenInput = {
@@ -12508,6 +13011,7 @@ export namespace Prisma {
     parentId?: string | null
     order?: number
     pages?: PageUncheckedCreateNestedManyWithoutFolderInput
+    collaborators?: UserUncheckedCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderCreateOrConnectWithoutChildrenInput = {
@@ -12524,6 +13028,7 @@ export namespace Prisma {
     workspace: WorkspaceCreateNestedOneWithoutFoldersInput
     children?: FolderCreateNestedManyWithoutParentInput
     pages?: PageCreateNestedManyWithoutFolderInput
+    collaborators?: UserCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderUncheckedCreateWithoutParentInput = {
@@ -12535,6 +13040,7 @@ export namespace Prisma {
     order?: number
     children?: FolderUncheckedCreateNestedManyWithoutParentInput
     pages?: PageUncheckedCreateNestedManyWithoutFolderInput
+    collaborators?: UserUncheckedCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderCreateOrConnectWithoutParentInput = {
@@ -12583,6 +13089,37 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UserCreateWithoutSharedFoldersInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    workspaces?: WorkspaceCreateNestedManyWithoutOwnerInput
+    sharedPages?: PageCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceCreateNestedManyWithoutMembersInput
+  }
+
+  export type UserUncheckedCreateWithoutSharedFoldersInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
+    sharedPages?: PageUncheckedCreateNestedManyWithoutCollaboratorsInput
+    memberships?: WorkspaceUncheckedCreateNestedManyWithoutMembersInput
+  }
+
+  export type UserCreateOrConnectWithoutSharedFoldersInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutSharedFoldersInput, UserUncheckedCreateWithoutSharedFoldersInput>
+  }
+
   export type WorkspaceUpsertWithoutFoldersInput = {
     update: XOR<WorkspaceUpdateWithoutFoldersInput, WorkspaceUncheckedUpdateWithoutFoldersInput>
     create: XOR<WorkspaceCreateWithoutFoldersInput, WorkspaceUncheckedCreateWithoutFoldersInput>
@@ -12600,6 +13137,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutWorkspacesNestedInput
+    members?: UserUpdateManyWithoutMembershipsNestedInput
     pages?: PageUpdateManyWithoutWorkspaceNestedInput
   }
 
@@ -12609,6 +13147,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    members?: UserUncheckedUpdateManyWithoutMembershipsNestedInput
     pages?: PageUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
@@ -12632,6 +13171,7 @@ export namespace Prisma {
     workspace?: WorkspaceUpdateOneRequiredWithoutFoldersNestedInput
     parent?: FolderUpdateOneWithoutChildrenNestedInput
     pages?: PageUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateWithoutChildrenInput = {
@@ -12643,6 +13183,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
     pages?: PageUncheckedUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUncheckedUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUpsertWithWhereUniqueWithoutParentInput = {
@@ -12677,12 +13218,29 @@ export namespace Prisma {
     data: XOR<PageUpdateManyMutationInput, PageUncheckedUpdateManyWithoutFolderInput>
   }
 
+  export type UserUpsertWithWhereUniqueWithoutSharedFoldersInput = {
+    where: UserWhereUniqueInput
+    update: XOR<UserUpdateWithoutSharedFoldersInput, UserUncheckedUpdateWithoutSharedFoldersInput>
+    create: XOR<UserCreateWithoutSharedFoldersInput, UserUncheckedCreateWithoutSharedFoldersInput>
+  }
+
+  export type UserUpdateWithWhereUniqueWithoutSharedFoldersInput = {
+    where: UserWhereUniqueInput
+    data: XOR<UserUpdateWithoutSharedFoldersInput, UserUncheckedUpdateWithoutSharedFoldersInput>
+  }
+
+  export type UserUpdateManyWithWhereWithoutSharedFoldersInput = {
+    where: UserScalarWhereInput
+    data: XOR<UserUpdateManyMutationInput, UserUncheckedUpdateManyWithoutSharedFoldersInput>
+  }
+
   export type WorkspaceCreateWithoutPagesInput = {
     id?: string
     name: string
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutWorkspacesInput
+    members?: UserCreateNestedManyWithoutMembershipsInput
     folders?: FolderCreateNestedManyWithoutWorkspaceInput
   }
 
@@ -12692,6 +13250,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ownerId: string
+    members?: UserUncheckedCreateNestedManyWithoutMembershipsInput
     folders?: FolderUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
@@ -12709,6 +13268,7 @@ export namespace Prisma {
     workspace: WorkspaceCreateNestedOneWithoutFoldersInput
     parent?: FolderCreateNestedOneWithoutChildrenInput
     children?: FolderCreateNestedManyWithoutParentInput
+    collaborators?: UserCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderUncheckedCreateWithoutPagesInput = {
@@ -12720,6 +13280,7 @@ export namespace Prisma {
     parentId?: string | null
     order?: number
     children?: FolderUncheckedCreateNestedManyWithoutParentInput
+    collaborators?: UserUncheckedCreateNestedManyWithoutSharedFoldersInput
   }
 
   export type FolderCreateOrConnectWithoutPagesInput = {
@@ -12736,6 +13297,8 @@ export namespace Prisma {
     accounts?: AccountCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceCreateNestedManyWithoutOwnerInput
+    memberships?: WorkspaceCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserUncheckedCreateWithoutSharedPagesInput = {
@@ -12747,6 +13310,8 @@ export namespace Prisma {
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
+    memberships?: WorkspaceUncheckedCreateNestedManyWithoutMembersInput
+    sharedFolders?: FolderUncheckedCreateNestedManyWithoutCollaboratorsInput
   }
 
   export type UserCreateOrConnectWithoutSharedPagesInput = {
@@ -12771,6 +13336,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutWorkspacesNestedInput
+    members?: UserUpdateManyWithoutMembershipsNestedInput
     folders?: FolderUpdateManyWithoutWorkspaceNestedInput
   }
 
@@ -12780,6 +13346,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    members?: UserUncheckedUpdateManyWithoutMembershipsNestedInput
     folders?: FolderUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
@@ -12803,6 +13370,7 @@ export namespace Prisma {
     workspace?: WorkspaceUpdateOneRequiredWithoutFoldersNestedInput
     parent?: FolderUpdateOneWithoutChildrenNestedInput
     children?: FolderUpdateManyWithoutParentNestedInput
+    collaborators?: UserUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateWithoutPagesInput = {
@@ -12814,6 +13382,7 @@ export namespace Prisma {
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     order?: IntFieldUpdateOperationsInput | number
     children?: FolderUncheckedUpdateManyWithoutParentNestedInput
+    collaborators?: UserUncheckedUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type UserUpsertWithWhereUniqueWithoutSharedPagesInput = {
@@ -12830,17 +13399,6 @@ export namespace Prisma {
   export type UserUpdateManyWithWhereWithoutSharedPagesInput = {
     where: UserScalarWhereInput
     data: XOR<UserUpdateManyMutationInput, UserUncheckedUpdateManyWithoutSharedPagesInput>
-  }
-
-  export type UserScalarWhereInput = {
-    AND?: UserScalarWhereInput | UserScalarWhereInput[]
-    OR?: UserScalarWhereInput[]
-    NOT?: UserScalarWhereInput | UserScalarWhereInput[]
-    id?: StringFilter<"User"> | string
-    name?: StringNullableFilter<"User"> | string | null
-    email?: StringNullableFilter<"User"> | string | null
-    emailVerified?: DateTimeNullableFilter<"User"> | Date | string | null
-    image?: StringNullableFilter<"User"> | string | null
   }
 
   export type AccountCreateManyUserInput = {
@@ -12939,6 +13497,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: UserUpdateManyWithoutMembershipsNestedInput
     folders?: FolderUpdateManyWithoutWorkspaceNestedInput
     pages?: PageUpdateManyWithoutWorkspaceNestedInput
   }
@@ -12948,6 +13507,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: UserUncheckedUpdateManyWithoutMembershipsNestedInput
     folders?: FolderUncheckedUpdateManyWithoutWorkspaceNestedInput
     pages?: PageUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
@@ -12998,6 +13558,68 @@ export namespace Prisma {
     order?: IntFieldUpdateOperationsInput | number
   }
 
+  export type WorkspaceUpdateWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutWorkspacesNestedInput
+    folders?: FolderUpdateManyWithoutWorkspaceNestedInput
+    pages?: PageUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceUncheckedUpdateWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    folders?: FolderUncheckedUpdateManyWithoutWorkspaceNestedInput
+    pages?: PageUncheckedUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceUncheckedUpdateManyWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type FolderUpdateWithoutCollaboratorsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    order?: IntFieldUpdateOperationsInput | number
+    workspace?: WorkspaceUpdateOneRequiredWithoutFoldersNestedInput
+    parent?: FolderUpdateOneWithoutChildrenNestedInput
+    children?: FolderUpdateManyWithoutParentNestedInput
+    pages?: PageUpdateManyWithoutFolderNestedInput
+  }
+
+  export type FolderUncheckedUpdateWithoutCollaboratorsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    order?: IntFieldUpdateOperationsInput | number
+    children?: FolderUncheckedUpdateManyWithoutParentNestedInput
+    pages?: PageUncheckedUpdateManyWithoutFolderNestedInput
+  }
+
+  export type FolderUncheckedUpdateManyWithoutCollaboratorsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    order?: IntFieldUpdateOperationsInput | number
+  }
+
   export type FolderCreateManyWorkspaceInput = {
     id?: string
     name: string
@@ -13019,6 +13641,40 @@ export namespace Prisma {
     order?: number
   }
 
+  export type UserUpdateWithoutMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutOwnerNestedInput
+    sharedPages?: PageUpdateManyWithoutCollaboratorsNestedInput
+    sharedFolders?: FolderUpdateManyWithoutCollaboratorsNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
+    sharedPages?: PageUncheckedUpdateManyWithoutCollaboratorsNestedInput
+    sharedFolders?: FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput
+  }
+
+  export type UserUncheckedUpdateManyWithoutMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type FolderUpdateWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -13028,6 +13684,7 @@ export namespace Prisma {
     parent?: FolderUpdateOneWithoutChildrenNestedInput
     children?: FolderUpdateManyWithoutParentNestedInput
     pages?: PageUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateWithoutWorkspaceInput = {
@@ -13039,6 +13696,7 @@ export namespace Prisma {
     order?: IntFieldUpdateOperationsInput | number
     children?: FolderUncheckedUpdateManyWithoutParentNestedInput
     pages?: PageUncheckedUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUncheckedUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -13118,6 +13776,7 @@ export namespace Prisma {
     workspace?: WorkspaceUpdateOneRequiredWithoutFoldersNestedInput
     children?: FolderUpdateManyWithoutParentNestedInput
     pages?: PageUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateWithoutParentInput = {
@@ -13129,6 +13788,7 @@ export namespace Prisma {
     order?: IntFieldUpdateOperationsInput | number
     children?: FolderUncheckedUpdateManyWithoutParentNestedInput
     pages?: PageUncheckedUpdateManyWithoutFolderNestedInput
+    collaborators?: UserUncheckedUpdateManyWithoutSharedFoldersNestedInput
   }
 
   export type FolderUncheckedUpdateManyWithoutParentInput = {
@@ -13178,6 +13838,40 @@ export namespace Prisma {
     order?: IntFieldUpdateOperationsInput | number
   }
 
+  export type UserUpdateWithoutSharedFoldersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutOwnerNestedInput
+    sharedPages?: PageUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUpdateManyWithoutMembersNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutSharedFoldersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
+    sharedPages?: PageUncheckedUpdateManyWithoutCollaboratorsNestedInput
+    memberships?: WorkspaceUncheckedUpdateManyWithoutMembersNestedInput
+  }
+
+  export type UserUncheckedUpdateManyWithoutSharedFoldersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type UserUpdateWithoutSharedPagesInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13187,6 +13881,8 @@ export namespace Prisma {
     accounts?: AccountUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUpdateManyWithoutOwnerNestedInput
+    memberships?: WorkspaceUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSharedPagesInput = {
@@ -13198,6 +13894,8 @@ export namespace Prisma {
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
+    memberships?: WorkspaceUncheckedUpdateManyWithoutMembersNestedInput
+    sharedFolders?: FolderUncheckedUpdateManyWithoutCollaboratorsNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutSharedPagesInput = {
