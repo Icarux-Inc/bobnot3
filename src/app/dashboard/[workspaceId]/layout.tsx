@@ -227,15 +227,21 @@ export default async function WorkspaceLayout({
       return 0;
   });
 
-   const USE_SIDEBAR_V2 = false; // Toggle this to switch versions
+  // Fetch user settings
+  const userSettings = await db.userSettings.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const useSidebarV2 = userSettings?.sidebarVersion === "v2";
+  const backgroundImage = userSettings?.backgroundImage ?? null;
 
    return (
-    <div 
+    <div
       className={`${inter.variable} font-sans min-h-screen w-full bg-cover bg-center bg-no-repeat`}
-      style={{ backgroundImage: 'url("/editor-background.png")' }}
+      style={{ backgroundImage: backgroundImage ? `url("${backgroundImage}")` : undefined }}
     >
       <SidebarProvider>
-        {USE_SIDEBAR_V2 ? (
+        {useSidebarV2 ? (
            <AppSidebarV2
               workspaceId={contextWorkspaceId}
               items={treeItems}

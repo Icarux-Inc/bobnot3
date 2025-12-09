@@ -57,6 +57,17 @@ model User {
     sharedPages   Page[] @relation("PageCollaborators")
     memberships   Workspace[] @relation("WorkspaceMembers")
     sharedFolders Folder[] @relation("FolderCollaborators")
+    settings      UserSettings?
+}
+
+model UserSettings {
+    id                String  @id @default(cuid())
+    userId            String  @unique
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    sidebarVersion    String  @default("v1") // "v1" or "v2"
+    backgroundImage   String? // URL or null for no background
+    createdAt         DateTime @default(now())
+    updatedAt         DateTime @updatedAt
 }
 
 model Workspace {
