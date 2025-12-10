@@ -61,8 +61,8 @@ export function SmoothScrollContainer({
     // Ensure content has proper height calculation for Lenis
     content.style.minHeight = '100%';
 
-    // Smoother easing function for better feel while maintaining responsiveness
-    // This cubic ease-out provides smooth deceleration
+    // Smooth cubic ease-out for balanced smoothness and responsiveness
+    // Provides smooth deceleration while still stopping relatively quickly
     const smoothEasing = (t: number) => {
       return 1 - Math.pow(1 - t, 3);
     };
