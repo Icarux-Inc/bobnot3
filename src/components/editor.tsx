@@ -274,12 +274,12 @@ const BlockNoteEditor = memo(function BlockNoteEditor({
                   if (current === endBlock) break;
                   
                   // Try next sibling first
-                  const nextSibling = current.nextElementSibling;
+                  const nextSibling: Element | null = current.nextElementSibling;
                   if (nextSibling) {
                     current = nextSibling;
                   } else {
                     // Go up to parent and try next sibling
-                    const parent = current.parentElement;
+                    const parent: HTMLElement | null = current.parentElement;
                     current = parent?.nextElementSibling || null;
                   }
                 }
