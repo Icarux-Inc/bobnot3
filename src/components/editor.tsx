@@ -973,14 +973,14 @@ function BlockNoteEditorInner({
 
         {/* Content */}
         <div className="flex flex-col flex-1 min-w-0 pb-4">
-          {/* Title - Bricolage Grotesque (matches H1) */}
+          {/* Title - Inter */}
           <Input
             value={title}
             onChange={handleTitleChange}
             spellCheck={false}
-            className="font-serif font-black tracking-tight border-none px-0 -mb-2 shadow-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent w-full text-6xl md:text-9xl"
+            className="font-sans font-black tracking-tight border-none px-0 -mb-2 shadow-none focus-visible:ring-0 h-auto placeholder:text-muted-foreground/50 bg-transparent w-full text-6xl md:text-9xl"
             placeholder="Untitled"
-            style={{ fontFamily: 'var(--font-bricolage), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif', fontSize: '4.5rem', fontWeight: 700 }}
+            style={{ fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif', fontSize: '4.5rem', fontWeight: 700 }}
           />
           
           {/* Action Buttons */}

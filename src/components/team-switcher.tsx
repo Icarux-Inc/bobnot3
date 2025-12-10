@@ -52,7 +52,7 @@ export function TeamSwitcher({
               className="data-[state=open]:bg-transparent data-[state=open]:text-sidebar-foreground hover:bg-transparent hover:text-sidebar-foreground h-auto py-2"
             >
               <div className="grid flex-1 text-left text-lg leading-tight">
-                <span className="truncate font-semibold font-serif">
+                <span className="truncate font-semibold font-sans" style={{ fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif' }}>
                   {activeTeam.name}
                 </span>
                 <span className="truncate text-sm text-muted-foreground">{activeTeam.plan}</span>
