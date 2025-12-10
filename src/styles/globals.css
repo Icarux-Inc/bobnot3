@@ -519,10 +519,18 @@ div[data-id="blocknote-editor"] {
   /* Show that there's more info on hover */
 }
 
+/* Text selection/highlighting for page editor */
+.bn-editor ::selection,
+.bn-editor .ProseMirror ::selection,
+.bn-editor .bn-block-content ::selection,
+.bn-editor .bn-inline-content ::selection {
+  background-color: hsl(25 35% 94%) !important; /* Brighter muted clay/orange */
+  color: hsl(25 70% 40%) !important; /* Text color for better contrast */
+}
+
 /* Override selection background color if it's too aggressive */
 /* This might be .tiptap-selection or similar depending on implementation */
-.ProseMirror-selectednode,
-::selection {
+.ProseMirror-selectednode {
   background-color: var(--sidebar-accent);
   /* Use a theme color for consistency */
   color: inherit;
