@@ -1058,7 +1058,7 @@ export function AppSidebarV2({
                 {/* Scrollable Platform content */}
                 <SmoothScrollContainer 
                 className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-transparent"
-                duration={1.0}
+                duration={0.5}
                 wheelMultiplier={1.2}
                 touchMultiplier={2.0}
                 >
