@@ -528,7 +528,7 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="h-auto px-2 pt-3 pb-1 gap-1">
+      <SidebarHeader className="h-auto px-2 pt-4 pb-1 gap-1">
         {/* Top Row: Toggle and Add Button */}
         <div className="flex items-center justify-between w-full px-0">
           <SidebarTrigger className="ml-0 [&_svg]:size-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
