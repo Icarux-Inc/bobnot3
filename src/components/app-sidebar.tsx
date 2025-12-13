@@ -659,8 +659,8 @@ export function AppSidebar({
       {/* Sticky Footer */}
       <SidebarFooter className="bg-background pt-0 pb-2 px-2">
         {/* Shared with me */}
-        <div className="px-1 mb-1 group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center gap-2 px-1 py-1 text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-0.5">
+        <div className="mb-1 group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center gap-2 px-2 py-1 text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mb-0.5">
             <Users className="h-3 w-3" />
             <span>Shared</span>
           </div>
