@@ -1,7 +1,7 @@
 "use client"
 
 import { signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 import {
   BadgeCheck,
@@ -45,6 +45,15 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const pathname = usePathname()
+
+  const handleSettingsClick = () => {
+    // Store current path as return path if not already on settings page
+    if (pathname && !pathname.startsWith('/dashboard/settings')) {
+      sessionStorage.setItem('settings-return-path', pathname)
+    }
+    router.push("/dashboard/settings")
+  }
 
   return (
     <SidebarMenu>
@@ -71,6 +80,7 @@ export function NavUser({
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
+            data-sidebar-dropdown="true"
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
@@ -79,25 +89,27 @@ export function NavUser({
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold font-sans" style={{ fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif' }}>{user.name}</span>
+                  <span className="truncate font-semibold">{user.name}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
+            {/* Temporarily disabled */}
+            {/* <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+              <DropdownMenuItem onClick={handleSettingsClick}>
                 <Settings />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              {/* Temporarily disabled */}
+              {/* <DropdownMenuItem>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
@@ -108,7 +120,7 @@ export function NavUser({
               <DropdownMenuItem>
                 <Bell />
                 Notifications
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>

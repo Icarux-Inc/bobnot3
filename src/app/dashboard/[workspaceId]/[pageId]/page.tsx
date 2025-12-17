@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { api } from "@/trpc/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState } from "react";
+import { motion } from "framer-motion";
 
 // Lazy load the heavy Editor component to improve initial page load
 const Editor = lazy(() => import("@/components/editor").then(module => ({ default: module.Editor })));
@@ -13,6 +14,21 @@ export default function PageEditor() {
   const params = useParams();
   const router = useRouter();
   const pageId = params.pageId as string;
+  
+  // Start with false to match server render, then check after hydration
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
+  // Check sessionStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const fromSettings = sessionStorage.getItem('navigating-from-settings') === 'true';
+      const justLoggedIn = sessionStorage.getItem('just-logged-in') === 'true';
+      
+      if (fromSettings || justLoggedIn) {
+        setShouldAnimate(true);
+      }
+    }
+  }, []);
 
   // Use the cached page data from layout - React Query will share the cache
   // This avoids duplicate network requests
@@ -28,6 +44,36 @@ export default function PageEditor() {
       refetchOnMount: false,
     }
   );
+
+  // Clean up sessionStorage after animation
+  useEffect(() => {
+    if (shouldAnimate) {
+      const timers: NodeJS.Timeout[] = [];
+      
+      if (typeof window !== 'undefined') {
+        const fromSettings = sessionStorage.getItem('navigating-from-settings') === 'true';
+        const justLoggedIn = sessionStorage.getItem('just-logged-in') === 'true';
+        
+        if (fromSettings) {
+          const timer = setTimeout(() => {
+            sessionStorage.removeItem('navigating-from-settings');
+          }, 500); // Match animation duration
+          timers.push(timer);
+        }
+        
+        if (justLoggedIn) {
+          const timer = setTimeout(() => {
+            sessionStorage.removeItem('just-logged-in');
+          }, 500); // Match animation duration
+          timers.push(timer);
+        }
+      }
+      
+      return () => {
+        timers.forEach(timer => clearTimeout(timer));
+      };
+    }
+  }, [shouldAnimate]);
 
   // Handle errors and redirects
   useEffect(() => {
@@ -71,10 +117,16 @@ export default function PageEditor() {
   }
 
   return (
-    <>
+    <motion.div
+      key={`${pageId}-${shouldAnimate ? 'animate' : 'no-animate'}`}
+      initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="h-full"
+    >
       <Suspense fallback={null}>
         <Editor pageId={page.id} title={page.title} coverImage={page.coverImage} bannerImage={page.bannerImage} />
       </Suspense>
-    </>
+    </motion.div>
   );
 }
