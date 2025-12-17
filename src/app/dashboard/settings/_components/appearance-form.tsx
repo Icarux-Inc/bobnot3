@@ -14,10 +14,49 @@ export default function AppearanceForm() {
   const utils = api.useUtils();
   const { data: settings, isLoading } = api.settings.getSettings.useQuery();
 
+  // Optimistic state management
+  const [optimisticVersion, setOptimisticVersion] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const updateSidebar = api.settings.updateSidebarVersion.useMutation({
+    onMutate: async (newVersion) => {
+      // Cancel outgoing refetches
+      await utils.settings.getSettings.cancel();
+      
+      // Snapshot previous value
+      const previousSettings = utils.settings.getSettings.getData();
+      
+      // Optimistically update to new value
+      setOptimisticVersion(newVersion.version);
+      setError(null);
+      
+      // Optimistically update cache
+      if (previousSettings) {
+        utils.settings.getSettings.setData(undefined, {
+          ...previousSettings,
+          sidebarVersion: newVersion.version,
+        });
+      }
+      
+      return { previousSettings };
+    },
+    onError: (err, newVersion, context) => {
+      // Rollback on error
+      if (context?.previousSettings) {
+        utils.settings.getSettings.setData(undefined, context.previousSettings);
+      }
+      setOptimisticVersion(null);
+      setError("Failed to update sidebar. Please try again.");
+    },
     onSuccess: async () => {
+      setOptimisticVersion(null);
+      setError(null);
       await utils.settings.getSettings.invalidate();
       router.refresh();
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      void utils.settings.getSettings.invalidate();
     },
   });
 
@@ -41,8 +80,17 @@ export default function AppearanceForm() {
   }
 
   const handleSidebarToggle = (version: "v1" | "v2") => {
+    // Prevent clicks if already updating or if already selected
+    if (updateSidebar.isPending) return;
+    const currentVersion = optimisticVersion || settings?.sidebarVersion;
+    if (currentVersion === version) return;
+    
     updateSidebar.mutate({ version });
   };
+
+  // Determine which version is currently active (optimistic or server)
+  const activeVersion = optimisticVersion || settings?.sidebarVersion || "v1";
+  const isUpdating = updateSidebar.isPending;
 
   const handleRemoveBackground = () => {
     updateBackground.mutate({ backgroundImage: null });
@@ -111,13 +159,51 @@ export default function AppearanceForm() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* V1 Option */}
-          <div
+          <motion.div
             onClick={() => handleSidebarToggle("v1")}
             className={`
-              cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 hover:border-primary/50
-              ${settings?.sidebarVersion === "v1" ? "border-primary bg-primary/5" : "border-border bg-card"}
+              relative rounded-2xl border-2 p-4 transition-all duration-200
+              ${isUpdating ? "cursor-wait opacity-60 pointer-events-none" : "cursor-pointer hover:border-primary/50 hover:shadow-md"}
+              ${activeVersion === "v1" ? "border-primary bg-primary/5" : "border-border bg-card"}
+              ${error && activeVersion === "v1" ? "border-destructive/50" : ""}
             `}
+            whileHover={!isUpdating ? { scale: 1.02 } : {}}
+            whileTap={!isUpdating ? { scale: 0.98 } : {}}
+            initial={false}
+            animate={
+              activeVersion === "v1" && isUpdating
+                ? {
+                    scale: [1, 1.01, 1],
+                  }
+                : {}
+            }
+            transition={
+              activeVersion === "v1" && isUpdating
+                ? {
+                    scale: {
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    },
+                  }
+                : {}
+            }
           >
+            {/* Loading overlay */}
+            {isUpdating && activeVersion === "v1" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 rounded-2xl bg-background/80 backdrop-blur-sm flex items-center justify-center z-10"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Switching...</span>
+                </div>
+              </motion.div>
+            )}
+            
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-background border shadow-sm">
@@ -125,10 +211,16 @@ export default function AppearanceForm() {
                 </div>
                 <span className="font-medium">Classic Sidebar</span>
               </div>
-              {settings?.sidebarVersion === "v1" && (
-                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+              {activeVersion === "v1" && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  className="h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                >
                   <Check className="h-3 w-3 text-primary-foreground" />
-                </div>
+                </motion.div>
               )}
             </div>
             <div className="space-y-2">
@@ -137,16 +229,54 @@ export default function AppearanceForm() {
                 <div className="w-3/4 h-20 rounded bg-muted/20 border border-dashed border-muted-foreground/20"></div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* V2 Option */}
-          <div
+          <motion.div
             onClick={() => handleSidebarToggle("v2")}
             className={`
-              cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 hover:border-primary/50
-              ${settings?.sidebarVersion === "v2" ? "border-primary bg-primary/5" : "border-border bg-card"}
+              relative rounded-2xl border-2 p-4 transition-all duration-200
+              ${isUpdating ? "cursor-wait opacity-60 pointer-events-none" : "cursor-pointer hover:border-primary/50 hover:shadow-md"}
+              ${activeVersion === "v2" ? "border-primary bg-primary/5" : "border-border bg-card"}
+              ${error && activeVersion === "v2" ? "border-destructive/50" : ""}
             `}
+            whileHover={!isUpdating ? { scale: 1.02 } : {}}
+            whileTap={!isUpdating ? { scale: 0.98 } : {}}
+            initial={false}
+            animate={
+              activeVersion === "v2" && isUpdating
+                ? {
+                    scale: [1, 1.01, 1],
+                  }
+                : {}
+            }
+            transition={
+              activeVersion === "v2" && isUpdating
+                ? {
+                    scale: {
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    },
+                  }
+                : {}
+            }
           >
+            {/* Loading overlay */}
+            {isUpdating && activeVersion === "v2" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 rounded-2xl bg-background/80 backdrop-blur-sm flex items-center justify-center z-10"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Switching...</span>
+                </div>
+              </motion.div>
+            )}
+            
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-background border shadow-sm">
@@ -154,20 +284,60 @@ export default function AppearanceForm() {
                 </div>
                 <span className="font-medium">Modern Floating</span>
               </div>
-              {settings?.sidebarVersion === "v2" && (
-                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+              {activeVersion === "v2" && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  className="h-5 w-5 rounded-full bg-primary flex items-center justify-center"
+                >
                   <Check className="h-3 w-3 text-primary-foreground" />
-                </div>
+                </motion.div>
               )}
             </div>
             <div className="relative h-20 rounded bg-muted/20 border border-dashed border-muted-foreground/20 overflow-hidden">
               <div className="absolute left-2 top-2 bottom-2 w-8 rounded-full bg-muted/50 border border-dashed border-muted-foreground/20"></div>
             </div>
-          </div>
+          </motion.div>
         </div>
+        
+        {/* Error message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive"
+          >
+            <div className="flex items-center gap-2">
+              <X className="h-4 w-4" />
+              <span>{error}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setError(null);
+                  if (optimisticVersion) {
+                    const previousVersion = settings?.sidebarVersion || "v1";
+                    handleSidebarToggle(previousVersion as "v1" | "v2");
+                  }
+                }}
+                className="ml-auto h-6 text-xs"
+              >
+                Retry
+              </Button>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
-      <div className="h-px bg-border/50" />
+      <motion.div 
+        className="h-px bg-border/50"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -181,7 +351,10 @@ export default function AppearanceForm() {
           </p>
         </div>
 
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <motion.div 
+          className="rounded-2xl border bg-card overflow-hidden transition-all duration-200 hover:shadow-md hover:border-border/80"
+          whileHover={{ scale: 1.01 }}
+        >
           <div className="p-6">
             <div className="flex flex-col gap-6">
               {settings?.backgroundImage ? (
@@ -273,7 +446,7 @@ export default function AppearanceForm() {
               Supported formats: JPG, PNG, WebP.
             </p>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -14,9 +14,16 @@ export default function GeneralSettings() {
       transition={{ duration: 0.3 }}
       className="space-y-8 max-w-3xl"
     >
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
         <h2 className="text-xl font-semibold tracking-tight mb-4">Workspace</h2>
-        <div className="grid gap-6 rounded-xl border bg-card p-6">
+        <motion.div 
+          className="grid gap-6 rounded-2xl border bg-card p-6 transition-all duration-200 hover:shadow-md hover:border-border/80"
+          whileHover={{ scale: 1.01 }}
+        >
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label className="text-base">Workspace Name</Label>
@@ -26,15 +33,27 @@ export default function GeneralSettings() {
             </div>
           </div>
           <div className="flex gap-2 max-w-sm">
-            <Input defaultValue="My Workspace" />
-            <Button variant="secondary">Save</Button>
+            <Input 
+              defaultValue="My Workspace" 
+              className="transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring/50"
+            />
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button variant="secondary" className="transition-all duration-200 hover:shadow-sm">Save</Button>
+            </motion.div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
         <h2 className="text-xl font-semibold tracking-tight mb-4">Preferences</h2>
-        <div className="grid gap-6 rounded-xl border bg-card p-6">
+        <motion.div 
+          className="grid gap-6 rounded-2xl border bg-card p-6 transition-all duration-200 hover:shadow-md hover:border-border/80"
+          whileHover={{ scale: 1.01 }}
+        >
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label className="text-base">Language</Label>
@@ -42,7 +61,7 @@ export default function GeneralSettings() {
                 Select your preferred language for the interface.
               </p>
             </div>
-            <select className="h-9 w-[180px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            <select className="h-9 w-[180px] rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all duration-200 hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:border-ring cursor-pointer">
               <option>English (US)</option>
               <option>French</option>
               <option>Spanish</option>
@@ -56,14 +75,14 @@ export default function GeneralSettings() {
                 Set your local timezone for accurate timestamps.
               </p>
             </div>
-            <select className="h-9 w-[180px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            <select className="h-9 w-[180px] rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all duration-200 hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:border-ring cursor-pointer">
               <option>UTC-08:00 (PST)</option>
               <option>UTC-05:00 (EST)</option>
               <option>UTC+00:00 (GMT)</option>
             </select>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 }

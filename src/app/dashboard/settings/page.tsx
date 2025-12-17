@@ -10,6 +10,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SmoothScrollContainer } from "@/components/smooth-scroll-container";
+import { motion, AnimatePresence } from "framer-motion";
 
 function SettingsContent() {
   const router = useRouter();
@@ -110,39 +111,70 @@ function SettingsContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="flex flex-col h-screen overflow-hidden bg-background"
+    >
       {/* Header - Fixed at top */}
-      <header className="flex-none flex items-center gap-4 border-b px-6 py-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 shrink-0">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={handleBack}
-          className="shrink-0 rounded-full hover:bg-muted"
+      <motion.header 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="flex-none flex items-center gap-4 border-b px-6 py-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 shrink-0 rounded-b-xl"
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
         >
-          <ArrowLeft className="h-5 w-5" />
-          <span className="sr-only">Back</span>
-        </Button>
-        <div className="flex flex-col">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleBack}
+            className="shrink-0 rounded-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-sm group"
+          >
+            <ArrowLeft className="h-5 w-5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <span className="sr-only">Back</span>
+          </Button>
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+          className="flex flex-col"
+        >
           <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
           <p className="text-sm text-muted-foreground hidden md:block">
             Manage your workspace and account preferences
           </p>
-        </div>
-      </header>
+        </motion.div>
+      </motion.header>
 
       {/* Main Layout - Separate scrolling */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar - Fixed width, scrolls independently */}
-        <aside className="w-64 border-r bg-muted/30 overflow-y-auto hidden md:block shrink-0">
+        <motion.aside 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+          className="w-64 border-r bg-muted/30 overflow-y-auto hidden md:block shrink-0"
+        >
           <div className="p-4 space-y-4">
-            <div className="px-3 py-2">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              className="px-3 py-2"
+            >
               <h2 className="mb-2 px-1 text-sm font-semibold tracking-tight text-muted-foreground/70 uppercase">
                 Configuration
               </h2>
               <SettingsNav activeTab={currentTab} onTabChange={handleTabChange} />
-            </div>
+            </motion.div>
           </div>
-        </aside>
+        </motion.aside>
 
         {/* Content Area - Scrolls independently */}
         <main className="flex-1 min-h-0 bg-background">
@@ -158,14 +190,23 @@ function SettingsContent() {
                  <Separator className="my-6" />
               </div>
 
-              <div className="min-h-[500px]">
-                {renderContent()}
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="min-h-[500px]"
+                >
+                  {renderContent()}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </SmoothScrollContainer>
         </main>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
