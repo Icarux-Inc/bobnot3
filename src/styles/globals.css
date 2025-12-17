@@ -269,6 +269,20 @@
   [data-sidebar="menu"] span {
     font-weight: 400 !important;
   }
+
+}
+
+/* Sidebar footer dropdown uses Inter font to match main sidebar */
+/* Placed outside @layer base for higher specificity */
+[data-sidebar-dropdown="true"],
+[data-sidebar-dropdown="true"] *,
+[data-sidebar-dropdown="true"] [data-slot="dropdown-menu-content"],
+[data-sidebar-dropdown="true"] [data-slot="dropdown-menu-item"],
+[data-sidebar-dropdown="true"] [role="menuitem"],
+[data-sidebar-dropdown="true"] span,
+[data-sidebar-dropdown="true"] div {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 500 !important;
 }
 
 /* Force transparent background for BlockNote */
